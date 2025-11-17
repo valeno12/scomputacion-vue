@@ -14,14 +14,20 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, User } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import cliente from '@/routes/cliente';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Clientes',
+        href: cliente.index(),
+        icon: User,
     },
 ];
 

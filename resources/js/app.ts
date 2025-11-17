@@ -5,8 +5,17 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { initializeTheme } from './composables/useAppearance';
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 1000 * 60 * 5,  // 5 minutos - datos "frescos"
+            gcTime: 1000 * 60 * 10,     // 10 minutos - cuánto tiempo en cache
+        },
+    },
+})
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -18,6 +27,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(VueQueryPlugin, { queryClient })
             .mount(el);
     },
     progress: {
