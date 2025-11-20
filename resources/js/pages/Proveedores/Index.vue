@@ -1,12 +1,12 @@
 <template>
-  <Head title="Gestión de Clientes" />
+  <Head title="Gestión de proveedores" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
     <div
       class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
     >
       <DataTable
-        title="Gestión de Clientes"
+        title="Gestión de Proveedores"
         :columns="columns"
         :data="props.data"
         v-model:search="search"
@@ -19,22 +19,13 @@
         <template #actions>
           <Button @click="handleCreate">
             <Plus class="mr-2 h-4 w-4" />
-            Nuevo Cliente
+            Nuevo Proveedor
           </Button>
         </template>
 
         <!-- Columna de acciones personalizada -->
-        <template #cell-acciones="{ item }: { item: Cliente }">
+        <template #cell-acciones="{ item }: { item: Proveedor }">
           <div class="flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              @click="handleShow(item.id)"
-              title="Ver detalles"
-            >
-              <Eye class="h-4 w-4" />
-            </Button>
-
             <Button
               variant="outline"
               size="sm"
@@ -54,13 +45,6 @@
             </Button>
           </div>
         </template>
-
-        <!-- Personalizar columna de email (truncar texto) -->
-        <template #cell-mail="{ item }: { item: Cliente }">
-          <div class="max-w-[280px] truncate" :title="item.mail">
-            {{ item.mail }}
-          </div>
-        </template>
       </DataTable>
     </div>
 
@@ -71,9 +55,7 @@
           <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
           <AlertDialogDescription>
             Se eliminará a
-            <strong
-              >{{ clienteToDelete?.nombre }}
-              {{ clienteToDelete?.apellido }}</strong
+            <strong>{{ proveedorToDelete?.nombre }}</strong
             >. Esta acción no se puede deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -112,17 +94,17 @@ import {
   type DataTableFilters,
 } from '@/composables/useDataTable';
 import AppLayout from '@/layouts/AppLayout.vue';
-import cliente from '@/routes/cliente';
+import proveedor from '@/routes/proveedor';
 import type { BreadcrumbItem } from '@/types';
-import type { Cliente } from '@/types/cliente.interface';
 import { LaravelPagination } from '@/types/pagination';
+import { Proveedor } from '@/types/proveedor.interface';
 import { Head, router } from '@inertiajs/vue3';
-import { Eye, Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 
 interface Props {
-  data: LaravelPagination<Cliente>;
+  data: LaravelPagination<Proveedor>;
   filters: DataTableFilters;
 }
 
@@ -130,41 +112,31 @@ const props = defineProps<Props>();
 
 // Estado para el diálogo de confirmación
 const showDeleteDialog = ref(false);
-const clienteToDelete = ref<Cliente | null>(null);
+const proveedorToDelete = ref<Proveedor | null>(null);
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
-    title: 'Clientes',
-    href: cliente.index().url,
+    title: 'Proveedores',
+    href: proveedor.index().url,
   },
 ];
 
 // Usar el composable para manejar la tabla
 const { search, sortBy, sortOrder, isLoading, goToPage } = useDataTable(
-  cliente.index().url,
+  proveedor.index().url,
   props.filters,
 );
 
 // Definición de columnas
 const columns: TableColumn[] = [
   {
-    key: 'dni',
-    label: 'DNI',
+    key: 'id',
+    label: 'ID',
     sortable: true,
   },
   {
     key: 'nombre',
     label: 'Nombre',
-    sortable: true,
-  },
-  {
-    key: 'apellido',
-    label: 'Apellido',
-    sortable: true,
-  },
-  {
-    key: 'mail',
-    label: 'E-Mail',
     sortable: true,
   },
   {
@@ -178,42 +150,38 @@ const columns: TableColumn[] = [
 
 // Funciones de navegación
 const handleCreate = (): void => {
-  router.visit(cliente.create().url);
-};
-
-const handleShow = (id: number): void => {
-  router.visit(cliente.show({ id }).url);
+  router.visit(proveedor.create().url);
 };
 
 const handleEdit = (id: number): void => {
-  router.visit(cliente.edit({ id }).url);
+  router.visit(proveedor.edit({ id }).url);
 };
 
 // Confirmar eliminación
-const confirmDelete = (clienteData: Cliente): void => {
-  clienteToDelete.value = clienteData;
+const confirmDelete = (proveedorData: Proveedor): void => {
+  proveedorToDelete.value = proveedorData;
   showDeleteDialog.value = true;
 };
 
 // Ejecutar eliminación
 const executeDelete = (): void => {
-  if (!clienteToDelete.value) return;
+  if (!proveedorToDelete.value) return;
 
-  const clienteData = clienteToDelete.value;
+  const proveedorData = proveedorToDelete.value;
 
-  router.delete(cliente.destroy({ id: clienteData.id }).url, {
+  router.delete(proveedor.destroy({ id: proveedorData.id }).url, {
     preserveScroll: true,
     onSuccess: () => {
-      toast.success('¡Cliente eliminado!', {
-        description: `${clienteData.nombre} ${clienteData.apellido} ha sido eliminado exitosamente.`,
+      toast.success('Proveedor eliminado!', {
+        description: `${proveedorData.nombre} ha sido eliminado exitosamente.`,
       });
       showDeleteDialog.value = false;
-      clienteToDelete.value = null;
+      proveedorToDelete.value = null;
     },
     onError: (errors) => {
       toast.error('Error al eliminar', {
         description:
-          'No se pudo eliminar el cliente. Por favor, intenta nuevamente.',
+          'No se pudo eliminar el proveedor. Por favor, intenta nuevamente.',
       });
       console.error(errors);
       showDeleteDialog.value = false;
@@ -224,22 +192,6 @@ const executeDelete = (): void => {
 // Cancelar eliminación
 const cancelDelete = (): void => {
   showDeleteDialog.value = false;
-  clienteToDelete.value = null;
+  proveedorToDelete.value = null;
 };
-
-watch(
-  () => props.data,
-  (newData) => {
-    console.log(
-      '📊 props.data CAMBIÓ - Página:',
-      newData.current_page,
-      'Items:',
-      newData.data.length,
-    );
-  },
-);
-
-watch(isLoading, (value) => {
-  console.log('⚡ isLoading:', value);
-});
 </script>

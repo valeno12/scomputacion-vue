@@ -16,9 +16,9 @@ class ClienteController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('dni', 'like', "%{$search}%")
-                  ->orWhere('nombre', 'like', "%{$search}%")
-                  ->orWhere('apellido', 'like', "%{$search}%")
-                  ->orWhere('mail', 'like', "%{$search}%");
+                  ->orWhere('nombre', 'ilike', "%{$search}%")
+                  ->orWhere('apellido', 'ilike', "%{$search}%")
+                  ->orWhere('mail', 'ilike', "%{$search}%");
             });
         }
 
@@ -52,29 +52,66 @@ class ClienteController extends Controller
         ]);
     }
 
+
     public function create()
     {
         return Inertia::render('Clientes/Create');
     }
 
+    public function search(Request $request)
+    {
+        $query = $request->get('q', '');
+        
+        // Separar por espacios
+        $palabras = array_filter(explode(' ', $query));
+        
+        $clientes = Cliente::query();
+        
+        // Para cada palabra, buscar que esté en algún campo
+        foreach ($palabras as $palabra) {
+            $clientes->where(function($q) use ($palabra) {
+                $q->where('nombre', 'ilike', "%{$palabra}%")
+                ->orWhere('apellido', 'ilike', "%{$palabra}%")
+                ->orWhere('dni', 'ilike', "%{$palabra}%");
+            });
+        }
+        
+        $clientes = $clientes
+            ->orderBy('apellido')
+            ->orderBy('nombre')
+            ->limit(50)
+            ->get();
+        
+        return response()->json($clientes);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:clientes',
+            'dni' => 'required|string|max:20|unique:cliente,dni',
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
+            'direccion' => 'required|string|max:500',
+            'telefono' => 'required|string|max:50',
             'mail' => 'required|email|max:255',
         ]);
 
-        Cliente::create($validated);
+        $cliente = Cliente::create($validated);
 
-        return redirect()->route('cliente.index')
-            ->with('success', 'Cliente creado exitosamente');
+        if ($request->boolean('from_modal')) {
+            return back()->with('cliente_creado_id', $cliente->id);
+        }
+            
+        return redirect()->route('cliente.index');
     }
 
     public function show($id)
     {
-        $cliente = Cliente::findOrFail($id);
+        $cliente = Cliente::with(['pedidos' => function($query) {
+            $query->with('estadoActual')
+                ->orderBy('created_at', 'desc')
+                ->limit(10);
+        }])->findOrFail($id);
         
         return Inertia::render('Clientes/Show', [
             'cliente' => $cliente,
@@ -95,16 +132,18 @@ class ClienteController extends Controller
         $cliente = Cliente::findOrFail($id);
         
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:clientes,dni,' . $cliente->id,
+            'dni' => 'required|string|max:20|unique:cliente,dni,' . $cliente->id,
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
+            'direccion' => 'required|string|max:500',
+            'telefono' => 'required|string|max:50',
             'mail' => 'required|email|max:255',
         ]);
 
         $cliente->update($validated);
 
-        return redirect()->route('cliente.index')
-            ->with('success', 'Cliente actualizado exitosamente');
+        return redirect()->route('cliente.index');
+            // ->with('success', 'Cliente actualizado exitosamente');
     }
 
     public function destroy($id)

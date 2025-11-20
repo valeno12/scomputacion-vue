@@ -17,4 +17,6 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__.'/modules/cliente.php';
+require __DIR__.'/modules/proveedor.php';
+require __DIR__.'/modules/pedido.php';
 require __DIR__.'/settings.php';
