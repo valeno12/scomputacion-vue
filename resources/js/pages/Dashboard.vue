@@ -58,50 +58,6 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
       .filter((e) => !['Entregado', 'Cancelado'].includes(e.nombre))
       .reduce((sum, estado) => sum + estado.count, 0)
   : 0;
-
-// Mapeo de colores para estados
-const getColorClasses = (nombre: string) => {
-  const colorMap: Record<string, { bg: string; text: string; icon: string }> = {
-    Pendiente: {
-      bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-      text: 'text-yellow-700 dark:text-yellow-300',
-      icon: 'bg-yellow-100 dark:bg-yellow-800',
-    },
-    'En Preparación': {
-      bg: 'bg-blue-50 dark:bg-blue-900/20',
-      text: 'text-blue-700 dark:text-blue-300',
-      icon: 'bg-blue-100 dark:bg-blue-800',
-    },
-    'Listo para Enviar': {
-      bg: 'bg-purple-50 dark:bg-purple-900/20',
-      text: 'text-purple-700 dark:text-purple-300',
-      icon: 'bg-purple-100 dark:bg-purple-800',
-    },
-    'En Camino': {
-      bg: 'bg-orange-50 dark:bg-orange-900/20',
-      text: 'text-orange-700 dark:text-orange-300',
-      icon: 'bg-orange-100 dark:bg-orange-800',
-    },
-    Entregado: {
-      bg: 'bg-green-50 dark:bg-green-900/20',
-      text: 'text-green-700 dark:text-green-300',
-      icon: 'bg-green-100 dark:bg-green-800',
-    },
-    Cancelado: {
-      bg: 'bg-red-50 dark:bg-red-900/20',
-      text: 'text-red-700 dark:text-red-300',
-      icon: 'bg-red-100 dark:bg-red-800',
-    },
-  };
-
-  return (
-    colorMap[nombre] || {
-      bg: 'bg-gray-50 dark:bg-gray-900/20',
-      text: 'text-gray-700 dark:text-gray-300',
-      icon: 'bg-gray-100 dark:bg-gray-800',
-    }
-  );
-};
 </script>
 
 <template>
@@ -125,7 +81,7 @@ const getColorClasses = (nombre: string) => {
                 {{ pedidosEnProceso }}
               </p>
               <p class="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                En preparación y envío
+                En proceso y finalizados
               </p>
             </div>
             <div class="rounded-full bg-blue-200 p-4 dark:bg-blue-800">
@@ -272,62 +228,6 @@ const getColorClasses = (nombre: string) => {
             <p class="text-3xl font-bold">
               {{ estadisticasMes.pedidosEsteMes }}
             </p>
-          </div>
-
-          <!-- Pedidos por Estado -->
-          <div class="space-y-2">
-            <p class="text-sm font-semibold text-muted-foreground">
-              Distribución por Estado
-            </p>
-            <div
-              v-if="
-                conteoPedidosPorEstado &&
-                Object.keys(conteoPedidosPorEstado).length > 0
-              "
-              class="grid gap-2 md:grid-cols-2"
-            >
-              <div
-                v-for="(estado, id) in conteoPedidosPorEstado"
-                :key="id"
-                :class="[
-                  'flex items-center justify-between rounded-lg border p-3 transition-all hover:scale-[1.02]',
-                  getColorClasses(estado.nombre).bg,
-                ]"
-              >
-                <div class="flex items-center gap-2">
-                  <div
-                    :class="[
-                      'h-2 w-2 rounded-full',
-                      getColorClasses(estado.nombre).icon,
-                    ]"
-                  ></div>
-                  <span
-                    :class="[
-                      'text-sm font-medium',
-                      getColorClasses(estado.nombre).text,
-                    ]"
-                  >
-                    {{ estado.nombre }}
-                  </span>
-                </div>
-                <span
-                  :class="[
-                    'rounded-full px-3 py-1 text-sm font-bold shadow-sm',
-                    getColorClasses(estado.nombre).icon,
-                    getColorClasses(estado.nombre).text,
-                  ]"
-                >
-                  {{ estado.count }}
-                </span>
-              </div>
-            </div>
-            <div
-              v-else
-              class="rounded-lg border-2 border-dashed py-8 text-center text-sm text-muted-foreground"
-            >
-              <Package class="mx-auto mb-2 h-12 w-12 opacity-30" />
-              No hay pedidos registrados
-            </div>
           </div>
         </div>
 
