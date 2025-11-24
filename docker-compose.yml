@@ -1,52 +1,45 @@
-version: '3.8'
-
+# Usa nano docker-compose.yml
 services:
   app:
     build:
-      context: ./docker/php
-      target: development
-
-    container_name: "${APP_NAME}_app"
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: scomputacion_vue_app
+    restart: always
+    working_dir: /var/www/html
     volumes:
       - ./:/var/www/html
-    ports:
-      - "9000:9000"
-      - "5173:5173"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
     networks:
-      - laravel
+      - scomputacion-net
 
   web:
-    image: nginx:latest
-    container_name: "${APP_NAME}_nginx"
-    depends_on:
-      - app
+    image: nginx:alpine
+    container_name: scomputacion_vue_nginx
+    restart: always
     ports:
-      - "8081:80"
+      - "8080:80"  # Usamos el 8081 para probar sin romper nada existente
     volumes:
       - ./:/var/www/html
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
     networks:
-      - laravel
+      - scomputacion-net
 
   db:
-    image: postgres:16
-    container_name: "${APP_NAME}_db"
+    image: postgres:14
+    container_name: scomputacion_vue_db
+    restart: always
     environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5433:5432"
+      POSTGRES_DB: taller
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     volumes:
-      - db_data_volume:/var/lib/postgresql/data
+      # IMPORTANTE: Aquí montamos tu copia de datos
+      - ./postgres_data_legacy:/var/lib/postgresql/data
     networks:
-      - laravel
-
-volumes:
-  db_data_volume:
+      - scomputacion-net
 
 networks:
-  laravel:
+  scomputacion-net:
     driver: bridge
