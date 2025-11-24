@@ -116,7 +116,7 @@ import type { Cliente } from '@/types/cliente.interface';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { Check, ChevronsUpDown, Plus, Search } from 'lucide-vue-next';
-import { computed, provide, ref, watch } from 'vue';
+import { computed, inject, provide, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import ClienteFormFields from './ClienteFormFields.vue';
 
@@ -129,6 +129,8 @@ const emit = defineEmits<{
   'update:modelValue': [value: number | null];
 }>();
 
+const clienteInicial = inject<any>('clienteInicial', null);
+
 const open = ref(false);
 const showDialog = ref(false);
 const searchQuery = ref('');
@@ -136,6 +138,12 @@ const clientesBusqueda = ref<Cliente[]>([]);
 const clienteSeleccionado = ref<Cliente | null>(null);
 const searching = ref(false);
 let searchTimeout: ReturnType<typeof setTimeout>;
+
+if (clienteInicial) {
+  clienteSeleccionado.value = clienteInicial;
+  // También emitir el ID
+  emit('update:modelValue', clienteInicial.id);
+}
 
 const selectedClienteText = computed(() => {
   if (!clienteSeleccionado.value) return null;

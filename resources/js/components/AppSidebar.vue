@@ -13,16 +13,22 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import cliente from '@/routes/cliente';
+import movimientosStock from '@/routes/movimientos-stock';
 import pedido from '@/routes/pedido';
+import producto from '@/routes/producto';
 import proveedor from '@/routes/proveedor';
+import rendimientos from '@/routes/rendimientos';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import {
   BookOpen,
+  Cpu,
+  DollarSign,
   Folder,
   LayoutGrid,
   Package,
   PcCase,
+  Truck,
   User,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
@@ -34,6 +40,16 @@ const mainNavItems: NavItem[] = [
     icon: LayoutGrid,
   },
   {
+    title: 'Pedidos',
+    href: pedido.index(),
+    icon: PcCase,
+  },
+  {
+    title: 'Productos',
+    href: producto.index(),
+    icon: Cpu,
+  },
+  {
     title: 'Clientes',
     href: cliente.index(),
     icon: User,
@@ -41,12 +57,17 @@ const mainNavItems: NavItem[] = [
   {
     title: 'Proveedores',
     href: proveedor.index(),
+    icon: Truck,
+  },
+  {
+    title: 'Movimientos de Stock',
+    href: movimientosStock.index(),
     icon: Package,
   },
   {
-    title: 'Pedidos',
-    href: pedido.index(),
-    icon: PcCase,
+    title: 'Rendimientos',
+    href: rendimientos.index(),
+    icon: DollarSign,
   },
 ];
 

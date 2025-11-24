@@ -13,6 +13,7 @@ use App\Models\Producto;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 class PedidoController extends Controller
 {
@@ -81,36 +82,82 @@ class PedidoController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'cliente_id' => 'required',
-            'equipo' => 'required|string',
+        $validated = $request->validate([
+            'cliente_id' => 'required|exists:cliente,id',
+            'equipo' => 'required|string|max:255',
             'estado_ingreso' => 'required|string',
+            'cargador' => 'boolean',
+            // Campos opcionales del Paso 2
+            'trabajo_realizar' => 'nullable|string',
+            'costo_mano_obra' => 'nullable|numeric|min:0',
+            'productos' => 'nullable|array',
+            'productos.*.id' => 'required_with:productos|exists:producto,id',
+            'productos.*.cantidad' => 'required_with:productos|integer|min:1',
         ]);
-        $cargador = $request->has('cargador') ? true : false;
 
-        $cliente = Cliente::findOrFail($request->cliente_id);
-        $nombre = $cliente->nombre;
-        $apellido = $cliente->apellido;
+        $validated['cargador'] = $request->boolean('cargador');
+        
+        // ✅ Determinar el estado según si tiene presupuesto
+        $tienePresupuesto = !empty($request->trabajo_realizar) && !empty($request->costo_mano_obra);
+        $estadoInicial = $tienePresupuesto ? 2 : 1;
+        
+        $validated['estadoActual_id'] = $estadoInicial;
 
-        $fecha = now();
+        $fecha=now();
+        // Crear pedido
         $pedido = Pedido::create([
-            'cliente_id' => $request->cliente_id,
-            'estado_ingreso' => $request->estado_ingreso,
-            'equipo' => $request->equipo,
-            'cargador' => $cargador,
+            'cliente_id' => $validated['cliente_id'],
+            'equipo' => $validated['equipo'],
+            'estado_ingreso' => $validated['estado_ingreso'],
+            'cargador' => $validated['cargador'],
             'fecha_ingreso' => $fecha,
-            'estadoActual_id' => 1,
+            'estadoActual_id' => $estadoInicial,
         ]);
-
-        $codigo = $this->generarCodigo($pedido->id, $nombre, $apellido);
-        $pedido->codigo = $codigo;
-        $pedido->save();
+        
+        $pedido->generarCodigo();
+        
+        // Crear estado inicial
         PedidoEstado::create([
             'pedido_id' => $pedido->id,
-            'estado_id' => 1,
+            'estado_id' => $estadoInicial,
         ]);
 
-        return redirect()->route('pedido.index')->with('success', 'ok');
+        // ✅ Si tiene presupuesto, agregar datos del Paso 2
+        if ($tienePresupuesto) {
+            $costo = 0;
+            $ganancia = $request->costo_mano_obra;
+
+            // Procesar productos
+            if (!empty($request->productos)) {
+                foreach ($request->productos as $productoData) {
+                    $producto = Producto::findOrFail($productoData['id']);
+                    $cantidad = $productoData['cantidad'];
+                    
+                    $costo += $producto->precio * $cantidad;
+                    $ganancia += (($producto->precio * 1.3) - $producto->precio) * $cantidad;
+                    
+                    ProductoSeleccionado::create([
+                        'pedido_id' => $pedido->id,
+                        'producto_id' => $producto->id,
+                        'cantidad' => $cantidad,
+                        'precio' => $producto->precio,
+                    ]);
+                }
+            }
+
+            $precioTotal = $costo + $ganancia;
+
+            $pedido->update([
+                'trabajo_realizar' => $request->trabajo_realizar,
+                'costo_mano_obra' => $request->costo_mano_obra,
+                'costo' => $costo,
+                'ganancia' => $ganancia,
+                'presupuesto' => $precioTotal,
+            ]);
+        }
+
+        return redirect()->route('pedido.index')
+            ->with('success', 'Pedido creado exitosamente');
     }
 
     public function obtenerClientes(Request $request) : JsonResponse
@@ -124,6 +171,34 @@ class PedidoController extends Controller
         return response()->json($clientes);
     }
 
+
+public function show($id)
+{
+    $pedido = Pedido::with([
+        'cliente',
+        'estadoActual',
+        'productosSeleccionados.producto'
+    ])->findOrFail($id);
+    
+    // Obtener historial de estados
+    $estados = PedidoEstado::where('pedido_id', $id)
+        ->with('estado')
+        ->orderBy('created_at', 'asc')
+        ->get();
+    
+    $estadoActual = $estados->last();
+    $siguienteEstado = null;
+    if ($estadoActual && $estadoActual->estado_id < 5) {
+        $siguienteEstado = Estado::find($estadoActual->estado_id + 1);
+    }
+    
+    return Inertia::render('Pedidos/Show', [
+        'pedido' => $pedido,
+        'estados' => $estados,
+        'siguienteEstado' => $siguienteEstado,
+    ]);
+}
+
     public function showI($id)
     {
         $pedido = Pedido::findOrFail($id);
@@ -136,6 +211,16 @@ class PedidoController extends Controller
         $pedido = Pedido::findOrFail($id);
 
         return view('pedido.show_final', compact('pedido'));
+    }
+
+    public function edit($id)
+    {
+        $pedido = Pedido::with(['cliente', 'productosSeleccionados.producto'])->findOrFail($id);  // ✅ Ya tiene with('cliente')
+        
+        return Inertia::render('Pedidos/Edit', [
+            'pedido' => $pedido,
+            'clienteActual' => $pedido->cliente,  // ✅ AGREGAR esto
+        ]);
     }
 
     public function editI($id)
@@ -152,6 +237,99 @@ class PedidoController extends Controller
         $clientes = Cliente::all();
         $productos = Producto::all();
         return view('pedido.editF', compact('pedido', 'clientes','productosPedido','productos'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'cliente_id' => 'required|exists:cliente,id',
+            'equipo' => 'required|string|max:255',
+            'estado_ingreso' => 'required|string',
+            'cargador' => 'boolean',
+            // Campos opcionales del presupuesto
+            'trabajo_realizar' => 'nullable|string',
+            'costo_mano_obra' => 'nullable|numeric|min:0',
+            'productos' => 'nullable|array',
+            'productos.*.id' => 'required_with:productos|exists:producto,id',
+            'productos.*.cantidad' => 'required_with:productos|integer|min:1',
+            'cambiar_estado' => 'nullable|boolean',
+        ]);
+
+        $pedido = Pedido::findOrFail($id);
+        
+        // Verificar si está en estado >= 3 (tiene stock descontado)
+        $estadoActual = $pedido->estadoActual_id;
+        $tieneStockDescontado = $estadoActual >= 3;
+        
+        // Si tiene stock descontado y va a cambiar productos, revertir primero
+        if ($tieneStockDescontado && $request->has('productos')) {
+            $this->revertirSalidaProductos($id);
+        }
+
+        // Actualizar datos básicos
+        $pedido->update([
+            'cliente_id' => $validated['cliente_id'],
+            'equipo' => $validated['equipo'],
+            'estado_ingreso' => $validated['estado_ingreso'],
+            'cargador' => $request->boolean('cargador'),
+        ]);
+
+        // Determinar si tiene presupuesto
+        $tienePresupuesto = !empty($request->trabajo_realizar) && !empty($request->costo_mano_obra);
+        
+        if ($tienePresupuesto) {
+            $costo = 0;
+            $ganancia = $request->costo_mano_obra;
+
+            // Eliminar productos anteriores y crear nuevos
+            $pedido->productosSeleccionados()->delete();
+
+            if (!empty($request->productos)) {
+                foreach ($request->productos as $productoData) {
+                    $producto = Producto::findOrFail($productoData['id']);
+                    $cantidad = $productoData['cantidad'];
+                    
+                    $costo += $producto->precio * $cantidad;
+                    $ganancia += (($producto->precio * 1.3) - $producto->precio) * $cantidad;
+                    
+                    ProductoSeleccionado::create([
+                        'pedido_id' => $pedido->id,
+                        'producto_id' => $producto->id,
+                        'cantidad' => $cantidad,
+                        'precio' => $producto->precio,
+                    ]);
+                }
+            }
+
+            $precioTotal = $costo + $ganancia;
+
+            $pedido->update([
+                'trabajo_realizar' => $request->trabajo_realizar,
+                'costo_mano_obra' => $request->costo_mano_obra,
+                'costo' => $costo,
+                'ganancia' => $ganancia,
+                'presupuesto' => $precioTotal,
+            ]);
+
+            // Si venía de "cambiar estado" y era estado 1, cambiar a estado 2
+            if ($request->boolean('cambiar_estado') && $pedido->estadoActual_id === 1) {
+                $pedido->estadoActual_id = 2;
+                $pedido->save();
+                
+                PedidoEstado::create([
+                    'pedido_id' => $pedido->id,
+                    'estado_id' => 2,
+                ]);
+            }
+
+            // Si tenía stock descontado, volver a descontarlo
+            if ($tieneStockDescontado) {
+                $this->pedidoAprobado($pedido->id);
+            }
+        }
+
+        return redirect()->route('pedido.show', ['id' => $pedido->id])
+            ->with('success', 'Pedido actualizado exitosamente');
     }
 
     public function updateI($id, Request $request)
@@ -235,27 +413,6 @@ class PedidoController extends Controller
     }
 
 
-    private function generarCodigo($id, $nombres, $apellidos)
-    {
-        $prefijo= 'PE';
-        $iniciales = '';
-        $nombres_array = explode(' ', $nombres);
-        foreach ($nombres_array as $nombre) {
-            $iniciales .= strtoupper(substr($nombre, 0, 1));
-        }
-
-        $apellidos_array = explode(' ', $apellidos);
-        foreach ($apellidos_array as $apellido) {
-            $iniciales .= strtoupper(substr($apellido, 0, 1));
-        }
-
-        $numero_id_formateado = str_pad($id, 3, '0', STR_PAD_LEFT);
-
-        $codigo = $prefijo . $numero_id_formateado . $iniciales;
-
-        return $codigo;
-    }
-
     public function verEstados($id)
     {
         $pedido = Pedido::findOrFail($id);
@@ -267,35 +424,35 @@ class PedidoController extends Controller
         return view('pedido.verEstados', compact('pedido', 'estados', 'estadoActual', 'siguienteEstado'));
     }
 
-        public function eliminarEstado($pedido_id, $estado_id)
-        {
-            $ultimoEstado = PedidoEstado::findOrFail($estado_id);
-            $ultimoEstado->delete();
+    public function eliminarEstado($pedido_id, $estado_id)
+    {
+        $ultimoEstado = PedidoEstado::findOrFail($estado_id);
+        $ultimoEstado->delete();
 
-            $pedido = Pedido::findOrFail($pedido_id);
-            $pedido->estadoActual_id = $pedido->estadoActual_id - 1;
-            $pedido->save();
+        $pedido = Pedido::findOrFail($pedido_id);
+        $pedido->estadoActual_id = $pedido->estadoActual_id - 1;
+        $pedido->save();
 
-            return redirect()
-                ->route('pedido.verestados', ['id' => $pedido_id])
-                ->with('eliminar', 'ok');
-        }
+        return redirect()
+        ->route('pedido.show', ['id' => $pedido_id])
+            >with('success', 'Estado eliminado exitosamente');
+    }
+
 
 
     public function actualizarEstado($pedido_id, $estado_id)
     {
         $pedido = Pedido::findOrFail($pedido_id);
-        if($estado_id == 2){
-            $productos = Producto::all();
-            return view('pedido.cambiar_estado', compact('pedido', 'productos'));
-        }
+        
         if($estado_id == 3){
             $this->pedidoAprobado($pedido_id);
         }
+        
         if($estado_id == 5){
             $pedido->fecha_pago = now();
             $pedido->save();
         }
+        
         $pedido->estadoActual_id = $estado_id;
         $pedido->save();
         $estado = new PedidoEstado();
@@ -303,13 +460,8 @@ class PedidoController extends Controller
         $estado->estado_id = $estado_id;
         $estado->save();
 
-        if($estado_id == 4){
-            return redirect()->route('pedido.finalizados')->with('success', 'ok');
-        }else if($estado_id == 5){
-            return redirect()->route('pedido.entregados')->with('success', 'ok');            
-        }else{
-            return redirect()->route('pedido.index')->with('success', 'ok');
-        }
+        return redirect()->route('pedido.show', ['id' => $pedido_id])
+            ->with('success', 'Estado actualizado exitosamente');
     }
 
     public function storeAprobacion(Request $request, $id)

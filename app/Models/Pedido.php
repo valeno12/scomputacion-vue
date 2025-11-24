@@ -65,4 +65,26 @@ class Pedido extends Model
         return $this->hasOne(PedidoEstado::class, 'pedido_id')->where('estado_id', 5);
     }
 
+        public function generarCodigo()
+    {
+        $cliente = $this->cliente;
+        $prefijo = 'PE';
+        $iniciales = '';
+        
+        $nombres_array = explode(' ', $cliente->nombre);
+        foreach ($nombres_array as $nombre) {
+            $iniciales .= strtoupper(substr($nombre, 0, 1));
+        }
+        
+        $apellidos_array = explode(' ', $cliente->apellido);
+        foreach ($apellidos_array as $apellido) {
+            $iniciales .= strtoupper(substr($apellido, 0, 1));
+        }
+        
+        $numero_id_formateado = str_pad($this->id, 3, '0', STR_PAD_LEFT);
+        $codigo = $prefijo . $numero_id_formateado . $iniciales;
+        
+        $this->codigo = $codigo;
+        $this->save();
+    }
 }

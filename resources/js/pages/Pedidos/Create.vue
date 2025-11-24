@@ -45,7 +45,8 @@
 
               <Button
                 v-if="currentStep.id === 'datos-iniciales'"
-                @click="stepper.next"
+                @click="handleContinuarPresupuesto"
+                :disabled="form.processing"
               >
                 Continuar con Presupuesto
               </Button>
@@ -108,13 +109,38 @@ const form = useForm({
   productos: [] as Array<{ id: number; cantidad: number }>,
 });
 
-// Proveer el form a los componentes hijos
 provide('pedidoForm', form);
 
 const handleCancel = () => {
   router.visit(pedidoRoutes.index().url);
 };
 
+// Validar Paso 1 antes de continuar
+const validarPaso1 = (): boolean => {
+  const errores: string[] = [];
+
+  if (!form.cliente_id) errores.push('Debe seleccionar un cliente');
+  if (!form.equipo) errores.push('Debe ingresar el equipo');
+  if (!form.estado_ingreso) errores.push('Debe describir el problema');
+
+  if (errores.length > 0) {
+    toast.error('Completá los campos requeridos', {
+      description: errores.join(', '),
+    });
+    return false;
+  }
+
+  return true;
+};
+
+// Avanzar al Paso 2 con validación
+const handleContinuarPresupuesto = () => {
+  if (validarPaso1()) {
+    stepper.value.next();
+  }
+};
+
+// Guardar solo Paso 1 (Estado = 1)
 const handleSaveIngresado = () => {
   form.post(pedidoRoutes.store().url, {
     onSuccess: () => {
@@ -125,7 +151,26 @@ const handleSaveIngresado = () => {
   });
 };
 
+// Guardar completo (Paso 1 + Paso 2)
 const handleSaveConPresupuesto = () => {
-  toast.info('Próximamente');
+  // Validar campos del Paso 2
+  if (!form.trabajo_realizar) {
+    toast.error('Completá el trabajo a realizar');
+    return;
+  }
+
+  if (!form.costo_mano_obra || form.costo_mano_obra <= 0) {
+    toast.error('Ingresá el costo de mano de obra');
+    return;
+  }
+
+  // Una sola request con TODOS los datos
+  form.post(pedidoRoutes.store().url, {
+    onSuccess: () => {
+      toast.success('¡Pedido creado con presupuesto!', {
+        description: 'El pedido ha sido creado exitosamente.',
+      });
+    },
+  });
 };
 </script>

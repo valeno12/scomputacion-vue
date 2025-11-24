@@ -3,7 +3,7 @@
 use App\Http\Controllers\ClienteController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('Cliente')->group(function(){
+Route::prefix('Cliente')->middleware(['auth', 'verified'])->group(function(){
     Route::get('/', [ClienteController::class, 'index'])->name('cliente.index');
     Route::get('/create', [ClienteController::class, 'create'])->name('cliente.create');
     Route::post('/', [ClienteController::class, 'store'])->name('cliente.store');

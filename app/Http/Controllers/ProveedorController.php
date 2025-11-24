@@ -81,12 +81,16 @@ class ProveedorController extends Controller
         return redirect()->route('proveedor.index');
     }
 
-    public function buscarNombre(Request $request) : JsonResponse
-    {
-        $query = $request->input('q');
-        $nombres = Proveedor::where('nombre', 'ilike', '%' . $query . '%')
-                    ->groupBy('nombre')
-                    ->pluck('nombre');
-        return response()->json($nombres);
+    public function search(Request $request)
+    {   
+        $query = $request->get('q','');
+
+        $proveedores = Proveedor::query()
+            ->where('nombre', 'ilike', "%{$query}%")
+            ->orderBy('nombre')
+            ->limit(50)
+            ->get();
+        
+        return response()->json($proveedores);
     }
 }

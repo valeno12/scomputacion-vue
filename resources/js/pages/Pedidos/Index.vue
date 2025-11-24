@@ -55,8 +55,14 @@
             <template #cell-estado="{ item }: { item: Pedido }">
               <Badge
                 v-if="item.estado_actual"
-                :variant="getEstadoVariant(item.estado_actual.id)"
+                :variant="getEstadoConfig(item.estado_actual.id).variant"
+                :class="getEstadoConfig(item.estado_actual.id).className"
               >
+                <component
+                  v-if="getEstadoConfig(item.estado_actual.id).iconComponent"
+                  :is="getEstadoConfig(item.estado_actual.id).iconComponent"
+                  class="mr-1 h-3 w-3"
+                />
                 {{ item.estado_actual.nombre }}
               </Badge>
               <span v-else class="text-muted-foreground">Sin estado</span>
@@ -255,17 +261,40 @@ const getTitle = () => {
 };
 
 // Variante de badge según estado
-const getEstadoVariant = (estadoId: number) => {
-  const variants: Record<number, any> = {
-    1: 'default', // Ingresado
-    2: 'secondary', // En reparación
-    3: 'secondary', // Esperando repuesto
-    4: 'outline', // Finalizado
-    5: 'default', // Entregado
-  };
-  return variants[estadoId] || 'secondary';
-};
+import { CheckCircle, Clock, Package, Search, Zap } from 'lucide-vue-next';
 
+const getEstadoConfig = (estadoId: number) => {
+  const configs = {
+    1: {
+      variant: 'default',
+      className: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      iconComponent: Search,
+    },
+    2: {
+      variant: 'default',
+      className: 'bg-orange-100 text-orange-800 border-orange-300',
+      iconComponent: Clock,
+    },
+    3: {
+      variant: 'default',
+      className: 'bg-blue-100 text-blue-800 border-blue-300',
+      iconComponent: Zap,
+    },
+    4: {
+      variant: 'default',
+      className: 'bg-green-100 text-green-800 border-green-300',
+      iconComponent: CheckCircle,
+    },
+    5: {
+      variant: 'default',
+      className:
+        'bg-emerald-100 text-emerald-900 border-emerald-400 font-medium',
+      iconComponent: Package,
+    },
+  } as const;
+
+  return configs[estadoId as keyof typeof configs] || configs[3];
+};
 // Cambio de tab
 const handleTabChange = (newTab: string) => {
   router.get(
@@ -285,11 +314,11 @@ const handleCreate = (): void => {
 };
 
 const handleShow = (id: number): void => {
-  router.visit(pedidoRoutes.showI({ id }).url);
+  router.visit(pedidoRoutes.show({ id }).url);
 };
 
 const handleEdit = (id: number): void => {
-  router.visit(pedidoRoutes.editI({ id }).url);
+  router.visit(pedidoRoutes.edit({ id }).url + '?from=index');
 };
 
 // Confirmar eliminación

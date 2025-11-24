@@ -26,11 +26,14 @@
     <div class="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow class="bg-slate-50 hover:bg-slate-50 dark:bg-slate-900/70">
             <TableHead
               v-for="column in columns"
               :key="column.key"
-              :class="column.headerClass"
+              :class="[
+                column.headerClass,
+                'font-semibold text-slate-900 dark:text-slate-100',
+              ]"
               @click="column.sortable ? toggleSort(column.key) : null"
               :style="{
                 cursor: column.sortable ? 'pointer' : 'default',
@@ -71,7 +74,18 @@
             </TableCell>
           </TableRow>
 
-          <TableRow v-else v-for="item in data.data" :key="getItemKey(item)">
+          <TableRow
+            v-else
+            v-for="(item, index) in data.data"
+            :key="getItemKey(item)"
+            :class="[
+              'transition-colors',
+              index % 2 === 0
+                ? 'bg-white dark:bg-slate-900/10'
+                : 'bg-slate-50/50 dark:bg-slate-900/30',
+              'hover:bg-slate-100 dark:hover:bg-slate-800/40',
+            ]"
+          >
             <TableCell
               v-for="column in columns"
               :key="column.key"

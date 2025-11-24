@@ -1,3 +1,5 @@
+import { Pedido } from './pedido.interface';
+
 export interface Cliente {
   id: number;
   dni: string;
@@ -9,4 +11,5 @@ export interface Cliente {
   created_at?: string;
   updated_at?: string;
   deleted_at?: string | null;
+  pedidos?: Pedido[];
 }
