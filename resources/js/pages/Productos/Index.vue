@@ -165,16 +165,19 @@ const columns: TableColumn[] = [
     key: 'precio',
     label: 'Precio Proveedor',
     sortable: true,
+    sensitive: true,
   },
   {
     key: 'precio_venta', // ⚠️ No existe en DB, es calculado en el slot
     label: 'Precio Venta',
     sortable: false,
+    sensitive: true,
   },
   {
     key: 'cantidad_disponible',
     label: 'Cantidad Disponible',
     sortable: true,
+    sensitive: true,
   },
   {
     key: 'acciones',

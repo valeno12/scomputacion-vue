@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import NavMain from '@/components/NavMain.vue';
-import NavUser from '@/components/NavUser.vue';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -86,10 +84,6 @@ const mainNavItems: NavItem[] = [
     <SidebarContent>
       <NavMain :items="mainNavItems" />
     </SidebarContent>
-
-    <SidebarFooter>
-      <NavUser />
-    </SidebarFooter>
   </Sidebar>
   <slot />
 </template>

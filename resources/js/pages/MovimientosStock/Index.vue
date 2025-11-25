@@ -184,10 +184,20 @@ const columns = computed<TableColumn[]>(() => {
     // Columnas para ENTRADAS
     return [
       { key: 'producto', label: 'Producto', sortable: false },
-      { key: 'cantidad', label: 'Cantidad', sortable: true },
+      { key: 'cantidad', label: 'Cantidad', sortable: true, sensitive: true },
       { key: 'fecha', label: 'Fecha', sortable: true },
-      { key: 'precio_unitario', label: 'Precio Unitario', sortable: false },
-      { key: 'precio_total', label: 'Precio Total', sortable: false },
+      {
+        key: 'precio_unitario',
+        label: 'Precio Unitario',
+        sortable: false,
+        sensitive: true,
+      },
+      {
+        key: 'precio_total',
+        label: 'Precio Total',
+        sortable: false,
+        sensitive: true,
+      },
       { key: 'proveedor', label: 'Proveedor', sortable: false },
       {
         key: 'acciones',
@@ -201,8 +211,8 @@ const columns = computed<TableColumn[]>(() => {
     // Columnas para SALIDAS
     return [
       { key: 'producto', label: 'Producto', sortable: false },
-      { key: 'pedido', label: 'Pedido', sortable: false },
-      { key: 'cantidad', label: 'Cantidad', sortable: true },
+      { key: 'pedido', label: 'Pedido', sortable: false, sensitive: true },
+      { key: 'cantidad', label: 'Cantidad', sortable: true, sensitive: true },
       { key: 'fecha', label: 'Fecha', sortable: true },
       {
         key: 'acciones',

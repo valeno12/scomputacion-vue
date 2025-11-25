@@ -156,16 +156,19 @@ const columns: TableColumn[] = [
     key: 'nombre',
     label: 'Nombre',
     sortable: true,
+    sensitive: true,
   },
   {
     key: 'apellido',
     label: 'Apellido',
     sortable: true,
+    sensitive: true,
   },
   {
     key: 'mail',
     label: 'E-Mail',
     sortable: true,
+    sensitive: true,
   },
   {
     key: 'acciones',

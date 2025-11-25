@@ -83,10 +83,10 @@
               </div>
             </TableCell>
             <TableCell class="font-medium">
-              {{ formatMoney(gasto.precio || 0) }}
+              {{ montoValue(gasto.precio || 0) }}
             </TableCell>
             <TableCell class="font-semibold text-red-600 dark:text-red-400">
-              {{ formatMoney((gasto.precio || 0) * gasto.cantidad) }}
+              {{ montoValue((gasto.precio || 0) * gasto.cantidad) }}
             </TableCell>
             <TableCell>
               <span
@@ -129,6 +129,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { usePrivacyMode } from '@/composables/usePrivacyMode';
 import type { MovimientoStock } from '@/types/movimiento-stock.interface';
 import { formatDate, formatMoney } from '@/utils/formatter';
 import { Package, ShoppingCart } from 'lucide-vue-next';
@@ -139,6 +140,14 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const privacyMode = usePrivacyMode();
+
+const montoValue = (monto: number) => {
+  if (privacyMode.value) return '••••••';
+
+  return formatMoney(monto);
+};
 
 const totalGastos = computed(() => {
   return props.gastos.reduce((sum, gasto) => {

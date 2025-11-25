@@ -27,7 +27,7 @@
               Ganancia Neta del Mes
             </p>
             <p class="text-5xl font-bold tracking-tight">
-              {{ formatMoney(gananciaMes) }}
+              {{ gananciaMensual }}
             </p>
             <p class="text-sm text-white/70">Cobros menos gastos del período</p>
           </div>
@@ -106,6 +106,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { usePrivacyMode } from '@/composables/usePrivacyMode';
 import rendimientos from '@/routes/rendimientos';
 import { formatMoney } from '@/utils/formatter';
 import { router } from '@inertiajs/vue3';
@@ -119,6 +120,13 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const privacyMode = usePrivacyMode();
+
+const gananciaMensual = computed(() => {
+  if (privacyMode.value) return '••••••';
+
+  return formatMoney(props.gananciaMes);
+});
 
 const months = [
   'Enero',

@@ -44,6 +44,7 @@
 </template>
 
 <script setup lang="ts">
+import { usePrivacyMode } from '@/composables/usePrivacyMode';
 import { formatMoney } from '@/utils/formatter';
 import { TrendingDown, TrendingUp } from 'lucide-vue-next';
 import { computed, type Component } from 'vue';
@@ -66,7 +67,13 @@ const props = withDefaults(defineProps<Props>(), {
 
 const showTrend = computed(() => props.trend && props.trendValue !== 0);
 
+const isPrivacyMode = usePrivacyMode();
+
 const formattedValue = computed(() => {
+  if (isPrivacyMode.value) {
+    return '••••••';
+  }
+
   if (props.formatAsCurrency) {
     return formatMoney(props.value);
   }

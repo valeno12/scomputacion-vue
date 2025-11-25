@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePrivacyMode } from '@/composables/usePrivacyMode';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import rendimientos from '@/routes/rendimientos';
@@ -37,6 +38,14 @@ const props = withDefaults(defineProps<Props>(), {
     mesNombre: 'Sin datos',
   }),
 });
+
+const privacyMode = usePrivacyMode();
+
+const valuePrivacy = (monto: number) => {
+  if (privacyMode.value) return '••••••';
+
+  return monto;
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -78,7 +87,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
               <p
                 class="mt-2 text-4xl font-bold text-blue-900 dark:text-blue-100"
               >
-                {{ pedidosEnProceso }}
+                {{ valuePrivacy(pedidosEnProceso) }}
               </p>
               <p class="mt-1 text-xs text-blue-600 dark:text-blue-400">
                 En proceso y finalizados
@@ -102,7 +111,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
               <p
                 class="mt-2 text-4xl font-bold text-green-900 dark:text-green-100"
               >
-                {{ estadisticasMes.pedidosCompletados }}
+                {{ valuePrivacy(estadisticasMes.pedidosCompletados) }}
               </p>
               <p class="mt-1 text-xs text-green-600 dark:text-green-400">
                 {{ estadisticasMes.mesNombre }}
@@ -128,7 +137,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
               <p
                 class="mt-2 text-4xl font-bold text-purple-900 dark:text-purple-100"
               >
-                {{ totalPedidos }}
+                {{ valuePrivacy(totalPedidos) }}
               </p>
               <p class="mt-1 text-xs text-purple-600 dark:text-purple-400">
                 Todos los estados
@@ -143,6 +152,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
 
       <!-- MOTIVACIÓN "DO IT FOR HIM" - MÁS COMPACTO, FOTO MÁS GRANDE -->
       <div
+        v-if="!privacyMode"
         class="relative overflow-hidden rounded-xl border-4 border-yellow-400 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 px-4 py-6 shadow-lg dark:border-yellow-500 dark:from-yellow-950/40 dark:via-orange-950/40 dark:to-red-950/40"
       >
         <!-- Decoración de fondo -->
@@ -216,7 +226,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
           >
             <TrendingUp v-if="estadisticasMes.tendencia >= 0" class="h-4 w-4" />
             <TrendingDown v-else class="h-4 w-4" />
-            {{ Math.abs(estadisticasMes.tendencia) }}%
+            {{ valuePrivacy(Math.abs(estadisticasMes.tendencia)) }}%
           </div>
         </div>
 
@@ -226,7 +236,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
           >
             <p class="text-sm text-muted-foreground">Pedidos este mes</p>
             <p class="text-3xl font-bold">
-              {{ estadisticasMes.pedidosEsteMes }}
+              {{ valuePrivacy(estadisticasMes.pedidosEsteMes) }}
             </p>
           </div>
         </div>

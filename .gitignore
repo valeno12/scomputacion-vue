@@ -31,3 +31,4 @@ yarn-error.log
 /.vscode
 /.zed
 postgres_data_legacy/
+docker-compose.override.yml

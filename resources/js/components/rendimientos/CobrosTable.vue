@@ -74,7 +74,7 @@
               </span>
             </TableCell>
             <TableCell class="font-semibold text-green-600 dark:text-green-400">
-              {{ formatMoney(cobro.presupuesto || 0) }}
+              {{ montoValue(cobro.presupuesto || 0) }}
             </TableCell>
             <TableCell class="text-sm text-muted-foreground">
               {{ formatDate(cobro.fecha_pago || '', { includeTime: false }) }}
@@ -122,6 +122,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { usePrivacyMode } from '@/composables/usePrivacyMode';
 import pedido from '@/routes/pedido';
 import type { Pedido } from '@/types/pedido.interface';
 import { formatDate, formatMoney } from '@/utils/formatter';
@@ -134,6 +135,14 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const privacyMode = usePrivacyMode();
+
+const montoValue = (monto: number) => {
+  if (privacyMode.value) return '••••••';
+
+  return formatMoney(monto);
+};
 
 const totalCobros = computed(() => {
   return props.cobros.reduce((sum, cobro) => {

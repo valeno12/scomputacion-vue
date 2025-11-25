@@ -209,9 +209,9 @@ const columns = computed<TableColumn[]>(() => {
   const estado = props.filters.estado || 'activos';
 
   const baseColumns: TableColumn[] = [
-    { key: 'codigo', label: 'Código', sortable: true },
-    { key: 'cliente', label: 'Cliente', sortable: false },
-    { key: 'dni', label: 'DNI', sortable: false },
+    { key: 'codigo', label: 'Código', sortable: true, sensitive: false },
+    { key: 'cliente', label: 'Cliente', sortable: false, sensitive: true },
+    { key: 'dni', label: 'DNI', sortable: false, sensitive: true },
     { key: 'equipo', label: 'Equipo', sortable: true },
   ];
 

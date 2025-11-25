@@ -91,9 +91,15 @@
               :key="column.key"
               :class="column.cellClass"
             >
-              <slot :name="`cell-${column.key}`" :item="item">
-                {{ getNestedValue(item, column.key) }}
-              </slot>
+              <template v-if="column.sensitive && isPrivacyMode">
+                <span class="text-muted-foreground">••••••</span>
+              </template>
+
+              <template v-else>
+                <slot :name="`cell-${column.key}`" :item="item">
+                  {{ getNestedValue(item, column.key) }}
+                </slot>
+              </template>
             </TableCell>
           </TableRow>
         </TableBody>
@@ -162,6 +168,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { usePrivacyMode } from '@/composables/usePrivacyMode';
 import { LaravelPagination } from '@/types/pagination';
 import {
   ArrowDown,
@@ -179,6 +186,7 @@ export interface TableColumn {
   sortable?: boolean;
   headerClass?: string;
   cellClass?: string;
+  sensitive?: boolean;
 }
 
 interface Props {
@@ -200,7 +208,10 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
+  sensitive: false,
 });
+
+const isPrivacyMode = usePrivacyMode();
 
 const emit = defineEmits<Emits>();
 
