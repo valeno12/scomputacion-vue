@@ -82,7 +82,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-blue-700 dark:text-blue-300">
-                Pedidos en Proceso
+                Pedidos en Transcurso
               </p>
               <p
                 class="mt-2 text-4xl font-bold text-blue-900 dark:text-blue-100"
@@ -90,7 +90,7 @@ const pedidosEnProceso = props.conteoPedidosPorEstado
                 {{ valuePrivacy(pedidosEnProceso) }}
               </p>
               <p class="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                En proceso y finalizados
+                Pedidos en Transcurso
               </p>
             </div>
             <div class="rounded-full bg-blue-200 p-4 dark:bg-blue-800">

@@ -30,6 +30,7 @@ class Pedido extends Model
         'fecha_pago',
         'costo_mano_obra',
         'estadoActual_id',
+        'ganancia',
     ];
 
     // Relación con el cliente
