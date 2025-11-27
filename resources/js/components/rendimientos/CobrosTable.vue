@@ -146,7 +146,7 @@ const montoValue = (monto: number) => {
 
 const totalCobros = computed(() => {
   return props.cobros.reduce((sum, cobro) => {
-    return sum + (cobro.presupuesto || 0);
+    return sum + Number(cobro.presupuesto || 0);
   }, 0);
 });
 
