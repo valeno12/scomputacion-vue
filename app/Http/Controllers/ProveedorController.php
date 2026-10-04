@@ -1,10 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Proveedor;
-use GuzzleHttp\Psr7\Query;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 
 class ProveedorController extends Controller
@@ -14,12 +13,12 @@ class ProveedorController extends Controller
         $query = Proveedor::query();
         if ($search = $request->input('search')) {
             $query->where('nombre', 'ilike', "%{$search}%");
-        } 
-        
+        }
+
         // Ordenamiento
         $sortBy = $request->input('sort_by', 'nombre');
         $sortOrder = $request->input('sort_order', 'asc');
-        
+
         // Validar columnas permitidas para ordenar
         $allowedSorts = ['id', 'nombre'];
         if (in_array($sortBy, $allowedSorts)) {
@@ -45,6 +44,7 @@ class ProveedorController extends Controller
     {
         $proveedor = Proveedor::findOrFail($id);
         $proveedor->delete();
+
         return redirect()->route('proveedor.index')->with('eliminar', 'ok');
     }
 
@@ -58,14 +58,19 @@ class ProveedorController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
         ]);
-        Proveedor::create($validated);
-        return redirect()->route('proveedor.index');
+        $proveedor = Proveedor::create($validated);
+        if ($request->expectsJson()) {
+            return response()->json(['proveedor' => $proveedor], 201);
         }
+
+        return redirect()->route('proveedor.index');
+    }
 
     public function edit($id)
     {
         $proveedor = Proveedor::findOrFail($id);
-        return Inertia::render('Proveedores/Edit',[
+
+        return Inertia::render('Proveedores/Edit', [
             'proveedor' => $proveedor,
         ]);
     }
@@ -82,15 +87,19 @@ class ProveedorController extends Controller
     }
 
     public function search(Request $request)
-    {   
-        $query = $request->get('q','');
+    {
+        $request->validate(['q' => 'nullable|string|max:200']);
+        $query = trim((string) $request->input('q', ''));
+        if ($query === '') {
+            return response()->json([]);
+        }
 
         $proveedores = Proveedor::query()
-            ->where('nombre', 'ilike', "%{$query}%")
+            ->whereRaw('LOWER(nombre) LIKE ?', ['%'.mb_strtolower($query).'%'])
             ->orderBy('nombre')
             ->limit(50)
             ->get();
-        
+
         return response()->json($proveedores);
     }
 }

@@ -1,10 +1,13 @@
 import type { Cliente } from './cliente.interface';
+import type { Operacion } from './comercio';
 import type { Estado } from './estado.interface';
 import type { PedidoEstado } from './pedido-estado.interface';
 import type { ProductoSeleccionado } from './producto-seleccionado.interface'; // ✅ AGREGAR
 
 export interface Pedido {
   id: number;
+  comercio_version: number;
+  operaciones?: Operacion[];
   codigo: string;
   cliente_id: number;
   cargador: string | null;

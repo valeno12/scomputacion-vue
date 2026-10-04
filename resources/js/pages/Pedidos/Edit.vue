@@ -1,9 +1,25 @@
 <template>
   <Head title="Editar Pedido" />
 
-  <AppLayout :breadcrumbs="breadcrumbs">
-    <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+  <AppLayout :breadcrumbs="breadcrumbs" sticky-actions>
+    <div class="flex h-full min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
       <div class="mx-auto w-full max-w-4xl">
+        <div
+          class="sticky top-0 z-20 mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur-md"
+          data-testid="editar-pedido-acciones"
+        >
+          <Button
+            variant="ghost"
+            @click="handleCancel"
+            :disabled="form.processing"
+            ><ArrowLeft class="size-4" />{{
+              fromIndex ? 'Volver a pedidos' : 'Volver al pedido'
+            }}</Button
+          >
+          <Button @click="handleSave" :disabled="form.processing">{{
+            form.processing ? 'Guardando…' : 'Guardar cambios'
+          }}</Button>
+        </div>
         <div class="mb-6">
           <h2 class="text-3xl font-bold tracking-tight">
             Editar Pedido {{ pedido.codigo }}
@@ -19,10 +35,30 @@
 
         <Card>
           <CardHeader>
-            <PedidoStepper :current-step-id="currentStep" />
+            <div class="flex gap-2" aria-label="Secciones del pedido">
+              <Button
+                :variant="
+                  currentStep === 'datos-iniciales' ? 'default' : 'outline'
+                "
+                @click="currentStep = 'datos-iniciales'"
+                >Datos del pedido</Button
+              >
+              <Button
+                :variant="currentStep === 'presupuesto' ? 'default' : 'outline'"
+                @click="handleSiguiente"
+                >Presupuesto</Button
+              >
+            </div>
           </CardHeader>
 
           <CardContent class="pt-6">
+            <div
+              v-if="Object.keys(form.errors).length"
+              role="alert"
+              class="mb-4 rounded border border-destructive p-3 text-destructive"
+            >
+              <p v-for="(error, key) in form.errors" :key="key">{{ error }}</p>
+            </div>
             <!-- Paso 1 -->
             <PedidoDatosInicialesForm
               v-if="currentStep === 'datos-iniciales'"
@@ -32,27 +68,29 @@
             <PedidoPresupuestoForm v-if="currentStep === 'presupuesto'" />
           </CardContent>
 
-          <CardFooter class="flex justify-between">
-            <Button variant="outline" @click="handleCancel"> Cancelar </Button>
+          <CardFooter class="flex flex-wrap justify-between gap-3">
+            <Button variant="outline" @click="handleCancel">Cancelar</Button>
 
-            <div class="flex gap-2">
+            <div
+              class="ml-auto flex flex-wrap justify-end gap-1.5 sm:gap-2 [&>button]:px-2.5 sm:[&>button]:px-4"
+            >
               <Button
                 v-if="currentStep === 'presupuesto'"
                 variant="outline"
                 @click="currentStep = 'datos-iniciales'"
               >
-                Anterior
+                Datos del pedido
               </Button>
 
               <Button
                 v-if="currentStep === 'datos-iniciales'"
                 @click="handleSiguiente"
               >
-                Siguiente
+                Ir al presupuesto
               </Button>
 
               <Button @click="handleSave" :disabled="form.processing">
-                Guardar Cambios
+                Guardar cambios
               </Button>
             </div>
           </CardFooter>
@@ -65,7 +103,6 @@
 <script setup lang="ts">
 import PedidoDatosInicialesForm from '@/components/pedidos/PedidoDatosInicialesForm.vue';
 import PedidoPresupuestoForm from '@/components/pedidos/PedidoPresupuestoForm.vue';
-import PedidoStepper from '@/components/pedidos/PedidoStepper.vue';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -73,23 +110,38 @@ import {
   CardFooter,
   CardHeader,
 } from '@/components/ui/card';
+import { usePedidoNavigation } from '@/composables/usePedidoNavigation';
 import AppLayout from '@/layouts/AppLayout.vue';
 import pedidoRoutes from '@/routes/pedido';
 import type { BreadcrumbItem } from '@/types';
+import {
+  copiarReparto,
+  itemsFormulario,
+  type OpcionesComercio,
+} from '@/types/comercio';
 import type { Pedido } from '@/types/pedido.interface';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { ArrowLeft } from 'lucide-vue-next';
 import { provide, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
-interface Props {
+interface Props extends OpcionesComercio {
   pedido: Pedido;
   clienteActual: any;
 }
 
 const props = defineProps<Props>();
+const { listadoUrl, volverAlListado } = usePedidoNavigation(
+  props.pedido.id,
+  props.pedido.estadoActual_id,
+);
+provide('opcionesComercio', props);
+const operacion = props.pedido.operaciones?.find(
+  (o) => o.tipo === 'reparacion',
+);
 
 const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Pedidos', href: pedidoRoutes.index().url },
+  { title: 'Pedidos', href: listadoUrl() },
   {
     title: props.pedido.codigo,
     href: pedidoRoutes.show({ id: props.pedido.id }).url,
@@ -109,10 +161,19 @@ const form = useForm({
   cliente_id: props.pedido.cliente_id,
   equipo: props.pedido.equipo,
   estado_ingreso: props.pedido.estado_ingreso,
-  cargador: props.pedido.cargador,
+  cargador: !!props.pedido.cargador,
   trabajo_realizar: props.pedido.trabajo_realizar || '',
-  costo_mano_obra: props.pedido.costo_mano_obra || null,
-  productos: [] as Array<{ id: number; cantidad: number }>,
+  costo_mano_obra: props.pedido.costo_mano_obra ?? null,
+  items: itemsFormulario([
+    ...(operacion?.items ?? []),
+    ...(props.pedido.operaciones
+      ?.filter((o) => o.es_presupuesto && o.estado !== 'anulada')
+      .flatMap((o) => o.items) ?? []),
+  ]),
+  reparto_mano_obra: copiarReparto(
+    operacion?.items.find((i) => i.tipo === 'mano_obra')?.reparto ??
+      props.repartoManoObra,
+  ),
   cambiar_estado: urlParams.get('step') === '2',
 });
 
@@ -122,7 +183,7 @@ provide('productosIniciales', props.pedido.productos_seleccionados || []);
 
 const handleCancel = () => {
   if (fromIndex) {
-    router.visit(pedidoRoutes.index().url);
+    volverAlListado();
   } else {
     router.visit(pedidoRoutes.show({ id: props.pedido.id }).url);
   }
@@ -160,7 +221,7 @@ const handleSave = () => {
       return;
     }
 
-    if (!form.costo_mano_obra || form.costo_mano_obra <= 0) {
+    if (form.costo_mano_obra === null || Number(form.costo_mano_obra) < 0) {
       toast.error('Ingresá el costo de mano de obra');
       return;
     }

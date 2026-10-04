@@ -4,7 +4,11 @@ import type { Producto } from './producto.interface';
 import type { Proveedor } from './proveedor.interface';
 
 export interface MovimientoStock {
-  id: number;
+  id: number | string;
+  clase?: 'Producto' | 'Repuesto';
+  motivo?: string;
+  edit_url?: string | null;
+  operacion_id?: number | null;
   producto_id: number;
   pedido_id: number | null;
   proveedor_id: number | null;

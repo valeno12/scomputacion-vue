@@ -23,7 +23,11 @@
 
         <Button type="submit" :disabled="isSubmitting || !isDirty">
           <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
-          {{ isSubmitting ? 'Guardando...' : `Guardar ${entityName}` }}
+          {{
+            isSubmitting
+              ? 'Guardando...'
+              : submitLabel || `Guardar ${entityName}`
+          }}
         </Button>
       </CardFooter>
     </Card>
@@ -48,6 +52,7 @@ interface Props {
   entityName: string;
   isSubmitting: boolean;
   isDirty?: boolean; // Nuevo prop
+  submitLabel?: string;
 }
 
 interface Emits {

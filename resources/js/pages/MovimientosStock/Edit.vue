@@ -15,7 +15,10 @@
           </p>
         </div>
 
-        <MovimientoStockForm :movimiento="props.movimiento" />
+        <MovimientoStockForm
+          :movimiento="props.movimiento"
+          :update-url="updateUrl"
+        />
       </div>
     </div>
   </AppLayout>
@@ -31,6 +34,7 @@ import { Head } from '@inertiajs/vue3';
 
 interface Props {
   movimiento: MovimientoStock;
+  updateUrl?: string;
 }
 
 const props = defineProps<Props>();
@@ -42,11 +46,9 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
   {
     title: `${props.movimiento.producto?.nombre || 'Editar'}`,
-    href: movimientosStock.edit({ id: props.movimiento.id }).url,
+    href: props.updateUrl
+      ? movimientosStock.ingresos.edit({ lote: props.movimiento.id }).url
+      : movimientosStock.edit({ id: props.movimiento.id }).url,
   },
 ];
 </script>
-``` ## Estructura de archivos: ``` components/ └── movimientos-stock/ ├──
-MovimientoStockForm.vue (usa FormCard) └── MovimientoStockFormFields.vue (campos
-del formulario) Pages/ └── MovimientosStock/ ├── Index.vue (tabs con DataTable)
-└── Edit.vue (usa MovimientoStockForm)

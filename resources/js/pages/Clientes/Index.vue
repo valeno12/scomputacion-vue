@@ -57,7 +57,7 @@
 
         <!-- Personalizar columna de email (truncar texto) -->
         <template #cell-mail="{ item }: { item: Cliente }">
-          <div class="max-w-[280px] truncate" :title="item.mail">
+          <div class="max-w-[280px] truncate" :title="item.mail || undefined">
             {{ item.mail }}
           </div>
         </template>

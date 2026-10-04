@@ -2,9 +2,12 @@
   <Head title="Crear Pedido" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
-    <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+    <div class="flex h-full min-w-0 flex-1 flex-col gap-4 p-4 md:p-6">
       <div class="mx-auto w-full max-w-4xl">
         <div class="mb-6">
+          <Button variant="ghost" class="mb-3" @click="handleCancel"
+            ><ArrowLeft class="size-4" />Volver a pedidos</Button
+          >
           <h2 class="text-3xl font-bold tracking-tight">Crear Pedido</h2>
           <p class="text-muted-foreground">
             Complete los datos del nuevo pedido
@@ -17,16 +20,25 @@
           </CardHeader>
 
           <CardContent class="pt-6">
+            <div
+              v-if="Object.keys(form.errors).length"
+              role="alert"
+              class="mb-4 rounded border border-destructive p-3 text-destructive"
+            >
+              <p v-for="(error, key) in form.errors" :key="key">{{ error }}</p>
+            </div>
             <PedidoDatosInicialesForm
               v-if="currentStep.id === 'datos-iniciales'"
             />
             <PedidoPresupuestoForm v-if="currentStep.id === 'presupuesto'" />
           </CardContent>
 
-          <CardFooter class="flex justify-between">
-            <Button variant="outline" @click="handleCancel"> Cancelar </Button>
+          <CardFooter class="flex flex-wrap justify-between gap-3">
+            <Button variant="outline" @click="handleCancel">Cancelar</Button>
 
-            <div class="flex gap-2">
+            <div
+              class="ml-auto flex flex-wrap justify-end gap-1.5 sm:gap-2 [&>button]:px-2.5 sm:[&>button]:px-4"
+            >
               <Button
                 v-if="!isFirstStep"
                 variant="outline"
@@ -56,7 +68,7 @@
                 @click="handleSaveConPresupuesto"
                 :disabled="form.processing"
               >
-                Guardar con Presupuesto
+                Guardar presupuesto
               </Button>
             </div>
           </CardFooter>
@@ -77,13 +89,23 @@ import {
   CardFooter,
   CardHeader,
 } from '@/components/ui/card';
+import { usePedidoNavigation } from '@/composables/usePedidoNavigation';
 import AppLayout from '@/layouts/AppLayout.vue';
 import pedidoRoutes from '@/routes/pedido';
 import type { BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import {
+  copiarReparto,
+  type ItemForm,
+  type OpcionesComercio,
+} from '@/types/comercio';
+import { Head, useForm } from '@inertiajs/vue3';
 import { defineStepper } from '@stepperize/vue';
+import { ArrowLeft } from 'lucide-vue-next';
 import { computed, provide } from 'vue';
 import { toast } from 'vue-sonner';
+
+const props = defineProps<OpcionesComercio>();
+provide('opcionesComercio', props);
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Pedidos', href: pedidoRoutes.index().url },
@@ -106,14 +128,13 @@ const form = useForm({
   cargador: false,
   trabajo_realizar: '',
   costo_mano_obra: null as number | null,
-  productos: [] as Array<{ id: number; cantidad: number }>,
+  items: [] as ItemForm[],
+  reparto_mano_obra: copiarReparto(props.repartoManoObra),
 });
 
 provide('pedidoForm', form);
 
-const handleCancel = () => {
-  router.visit(pedidoRoutes.index().url);
-};
+const { volverAlListado: handleCancel } = usePedidoNavigation();
 
 // Validar Paso 1 antes de continuar
 const validarPaso1 = (): boolean => {
@@ -159,7 +180,7 @@ const handleSaveConPresupuesto = () => {
     return;
   }
 
-  if (!form.costo_mano_obra || form.costo_mano_obra <= 0) {
+  if (form.costo_mano_obra === null || Number(form.costo_mano_obra) < 0) {
     toast.error('Ingresá el costo de mano de obra');
     return;
   }

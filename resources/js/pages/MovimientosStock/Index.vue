@@ -48,6 +48,17 @@
             </template>
 
             <!-- Columna cantidad -->
+            <template #cell-clase="{ item }: { item: MovimientoStock }">
+              <Badge
+                variant="outline"
+                :class="
+                  item.clase === 'Repuesto'
+                    ? 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300'
+                    : ''
+                "
+                >{{ item.clase || 'Producto' }}</Badge
+              >
+            </template>
             <template #cell-cantidad="{ item }: { item: MovimientoStock }">
               <span
                 class="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium dark:bg-gray-800"
@@ -96,26 +107,29 @@
                   {{ item.pedido.codigo }}
                 </span>
               </div>
-              <div v-else class="text-muted-foreground">N/A</div>
+              <Link
+                v-else-if="item.operacion_id"
+                :href="`/comercio/operaciones/${item.operacion_id}`"
+                class="text-sm underline"
+                >Venta #{{ item.operacion_id }}</Link
+              >
+              <div v-else class="text-muted-foreground">—</div>
             </template>
 
             <!-- Columna de acciones -->
             <template #cell-acciones="{ item }: { item: MovimientoStock }">
               <div class="flex items-center justify-end gap-2">
-                <!-- Para entradas: botón editar -->
                 <Button
-                  v-if="isEntradas"
+                  v-if="isEntradas && item.edit_url"
                   variant="outline"
                   size="sm"
-                  @click="handleEdit(item.id)"
-                  title="Editar"
-                >
-                  <Pencil class="h-4 w-4" />
-                </Button>
-
+                  title="Editar entrada"
+                  @click="router.visit(item.edit_url!)"
+                  ><Pencil class="h-4 w-4"
+                /></Button>
                 <!-- Para salidas: botón ver pedido -->
                 <Button
-                  v-else
+                  v-if="!isEntradas"
                   variant="outline"
                   size="sm"
                   @click="handleViewPedido(item.pedido?.id)"
@@ -136,6 +150,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@/components/DataTable.vue';
 import DataTable from '@/components/DataTable.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -149,7 +164,7 @@ import type { BreadcrumbItem } from '@/types';
 import type { MovimientoStock } from '@/types/movimiento-stock.interface';
 import type { LaravelPagination } from '@/types/pagination';
 import { formatDate, formatMoney } from '@/utils/formatter';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Eye, Package, Pencil } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -184,6 +199,7 @@ const columns = computed<TableColumn[]>(() => {
     // Columnas para ENTRADAS
     return [
       { key: 'producto', label: 'Producto', sortable: false },
+      { key: 'clase', label: 'Tipo', sortable: false },
       { key: 'cantidad', label: 'Cantidad', sortable: true, sensitive: true },
       { key: 'fecha', label: 'Fecha', sortable: true },
       {
@@ -199,6 +215,7 @@ const columns = computed<TableColumn[]>(() => {
         sensitive: true,
       },
       { key: 'proveedor', label: 'Proveedor', sortable: false },
+      { key: 'pedido', label: 'Pedido', sortable: false },
       {
         key: 'acciones',
         label: 'Acciones',
@@ -211,6 +228,7 @@ const columns = computed<TableColumn[]>(() => {
     // Columnas para SALIDAS
     return [
       { key: 'producto', label: 'Producto', sortable: false },
+      { key: 'clase', label: 'Tipo', sortable: false },
       { key: 'pedido', label: 'Pedido', sortable: false, sensitive: true },
       { key: 'cantidad', label: 'Cantidad', sortable: true, sensitive: true },
       { key: 'fecha', label: 'Fecha', sortable: true },
@@ -231,7 +249,7 @@ const getTitle = () => {
     : 'Historial de Salidas de Stock';
 };
 
-const handleTabChange = (newTab: string) => {
+const handleTabChange = (newTab: string | number) => {
   router.get(
     movimientosStock.index().url,
     { tipo: newTab },
@@ -241,10 +259,6 @@ const handleTabChange = (newTab: string) => {
       replace: true,
     },
   );
-};
-
-const handleEdit = (id: number): void => {
-  router.visit(movimientosStock.edit({ id }).url);
 };
 
 const handleViewPedido = (pedidoId: number | undefined): void => {

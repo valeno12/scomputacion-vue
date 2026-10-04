@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ComercioController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
@@ -8,6 +9,11 @@ use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
     Route::redirect('settings', '/settings/profile');
+
+    Route::middleware('verified')->group(function () {
+        Route::get('settings/repartos', [ComercioController::class, 'configuracion'])->name('repartos.edit');
+        Route::put('settings/repartos', [ComercioController::class, 'guardarConfiguracion'])->name('repartos.update');
+    });
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');

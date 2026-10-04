@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+
+# Compila PHP, las rutas Wayfinder y los assets Vite. Node no llega al runtime.
+FROM php:8.2-cli-bookworm AS build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl git libicu-dev libonig-dev libpng-dev libpq-dev libxml2-dev libzip-dev \
+        unzip zip \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && docker-php-ext-install pdo_pgsql pgsql mbstring bcmath gd intl zip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+WORKDIR /var/www/html
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN composer dump-autoload --no-dev --optimize \
+    && APP_ENV=production APP_DEBUG=false \
+       APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+       DB_CONNECTION=sqlite DB_DATABASE=':memory:' npm run build \
+    && rm -rf node_modules
+
+# Un solo servicio Render: Nginx público y PHP-FPM se comunican por localhost.
+FROM php:8.2-fpm-bookworm AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gettext-base libicu-dev libonig-dev libpng-dev libpq-dev libxml2-dev libzip-dev \
+        nginx supervisor unzip zip \
+    && docker-php-ext-install pdo_pgsql pgsql mbstring bcmath gd intl zip \
+    && rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled/default
+
+WORKDIR /var/www/html
+COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
+COPY docker/render/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY docker/render/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/render/start-container /usr/local/bin/start-container
+
+RUN chmod +x /usr/local/bin/start-container \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+ENV PORT=10000
+EXPOSE 10000
+CMD ["/usr/local/bin/start-container"]

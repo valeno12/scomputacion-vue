@@ -1,6 +1,6 @@
 <template>
   <!-- DNI -->
-  <FormField id="dni" label="DNI" :error="form.errors.dni" required>
+  <FormField id="dni" label="DNI (opcional)" :error="form.errors.dni">
     <Input
       id="dni"
       v-model="form.dni"
@@ -16,6 +16,7 @@
     <FormField id="nombre" label="Nombre" :error="form.errors.nombre" required>
       <Input
         id="nombre"
+        required
         v-model="form.nombre"
         type="text"
         placeholder="Juan"
@@ -32,6 +33,7 @@
     >
       <Input
         id="apellido"
+        required
         v-model="form.apellido"
         type="text"
         placeholder="Pérez"
@@ -44,9 +46,8 @@
   <!-- Email -->
   <FormField
     id="mail"
-    label="Correo Electrónico"
+    label="Correo electrónico (opcional)"
     :error="form.errors.mail"
-    required
   >
     <Input
       id="mail"
@@ -61,9 +62,8 @@
   <!-- Teléfono -->
   <FormField
     id="telefono"
-    label="Teléfono"
+    label="Teléfono (opcional)"
     :error="form.errors.telefono"
-    required
   >
     <Input
       id="telefono"
@@ -78,9 +78,8 @@
   <!-- Dirección -->
   <FormField
     id="direccion"
-    label="Dirección"
+    label="Dirección (opcional)"
     :error="form.errors.direccion"
-    required
   >
     <Input
       id="direccion"

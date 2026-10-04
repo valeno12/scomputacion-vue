@@ -6,6 +6,7 @@ export interface ProductoSeleccionado {
   producto_id: number;
   cantidad: number;
   precio: number;
+  precio_venta?: number | null;
   created_at: string;
   updated_at: string;
 

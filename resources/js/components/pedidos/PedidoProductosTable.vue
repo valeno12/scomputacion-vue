@@ -12,9 +12,9 @@
           <Package class="h-5 w-5 text-green-600 dark:text-green-400" />
         </div>
         <div>
-          <h3 class="font-semibold">Productos Seleccionados</h3>
+          <h3 class="font-semibold">Repuestos del pedido</h3>
           <p class="text-xs text-muted-foreground">
-            {{ productos.length }} producto{{
+            {{ productos.length }} repuesto{{
               productos.length !== 1 ? 's' : ''
             }}
           </p>
@@ -26,19 +26,19 @@
       <table class="w-full">
         <thead class="bg-gray-50 dark:bg-gray-900/50">
           <tr class="border-b">
-            <th class="px-4 py-3 text-left text-sm font-semibold">Producto</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold">Repuesto</th>
             <th class="px-4 py-3 text-right text-sm font-semibold">Cantidad</th>
             <th class="px-4 py-3 text-right text-sm font-semibold">
-              Precio Unit.
+              Costo Unit.
             </th>
             <th class="px-4 py-3 text-right text-sm font-semibold">
-              Precio Venta Unit.
+              Precio presupuestado Unit.
             </th>
             <th class="px-4 py-3 text-right text-sm font-semibold">
               Costo Total
             </th>
             <th class="px-4 py-3 text-right text-sm font-semibold">
-              Total Venta
+              Total presupuestado
             </th>
           </tr>
         </thead>
@@ -82,7 +82,7 @@
             <td
               class="px-4 py-3 text-right font-medium text-green-600 dark:text-green-400"
             >
-              {{ formatMoney(item.precio * 1.3) }}
+              {{ formatMoney(item.precio_venta ?? item.precio) }}
             </td>
             <td class="px-4 py-3 text-right">
               {{ formatMoney(item.precio * item.cantidad) }}
@@ -90,7 +90,9 @@
             <td
               class="px-4 py-3 text-right font-semibold text-green-600 dark:text-green-400"
             >
-              {{ formatMoney(item.precio * 1.3 * item.cantidad) }}
+              {{
+                formatMoney((item.precio_venta ?? item.precio) * item.cantidad)
+              }}
             </td>
           </tr>
         </tbody>
@@ -132,6 +134,7 @@ interface ProductoSeleccionado {
   };
   cantidad: number;
   precio: number;
+  precio_venta?: number | null;
 }
 
 interface Props {
@@ -148,7 +151,7 @@ const costoTotal = computed(() => {
 
 const precioVentaTotal = computed(() => {
   return props.productos.reduce((total, item) => {
-    return total + item.precio * 1.3 * item.cantidad;
+    return total + (item.precio_venta ?? item.precio) * item.cantidad;
   }, 0);
 });
 </script>

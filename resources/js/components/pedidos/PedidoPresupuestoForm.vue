@@ -1,6 +1,17 @@
+<script setup lang="ts">
+import ItemsEditor from '@/components/comercio/ItemsEditor.vue';
+import FormField from '@/components/common/FormField.vue';
+import PedidoResumenPresupuesto from '@/components/pedidos/PedidoResumenPresupuesto.vue';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import type { OpcionesComercio } from '@/types/comercio';
+import { inject } from 'vue';
+const form = inject<any>('pedidoForm');
+const opciones = inject<OpcionesComercio>('opcionesComercio')!;
+if (!form) throw new Error('PedidoPresupuestoForm requires pedidoForm');
+</script>
 <template>
   <div class="space-y-6">
-    <!-- Trabajo a realizar -->
     <FormField
       id="trabajo_realizar"
       label="Trabajo a realizar"
@@ -8,14 +19,13 @@
       required
     >
       <Textarea
+        id="trabajo_realizar"
         v-model="form.trabajo_realizar"
         placeholder="Describa el trabajo que se realizará"
         rows="4"
         :disabled="form.processing"
       />
     </FormField>
-
-    <!-- Costo de mano de obra -->
     <FormField
       id="costo_mano_obra"
       label="Costo de mano de obra"
@@ -24,13 +34,14 @@
     >
       <div class="relative">
         <span
-          class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+          class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+          >$</span
         >
-          $
-        </span>
         <Input
+          id="costo_mano_obra"
           v-model.number="form.costo_mano_obra"
           type="number"
+          min="0"
           step="0.01"
           placeholder="0.00"
           class="pl-7"
@@ -38,23 +49,15 @@
         />
       </div>
     </FormField>
-
-    <ProductoSelector />
+    <ItemsEditor
+      v-model="form.items"
+      v-bind="opciones"
+      :errores="form.errors"
+      ocultar-total
+    />
+    <PedidoResumenPresupuesto
+      :items="form.items"
+      :mano-obra="form.costo_mano_obra"
+    />
   </div>
 </template>
-
-<script setup lang="ts">
-import FormField from '@/components/common/FormField.vue';
-import ProductoSelector from '@/components/productos/ProductoSelector.vue';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { inject } from 'vue';
-
-const form = inject<any>('pedidoForm');
-
-if (!form) {
-  throw new Error(
-    'PedidoPresupuestoForm must be used inside a component that provides pedidoForm',
-  );
-}
-</script>

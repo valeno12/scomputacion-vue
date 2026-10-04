@@ -12,6 +12,7 @@ class MovimientoStock extends Model
     use SoftDeletes;
 
     protected $table = 'movimiento_stock';
+
     protected $fillable = [
         'producto_id',
         'pedido_id',
@@ -24,7 +25,7 @@ class MovimientoStock extends Model
 
     public function producto()
     {
-        return $this->belongsTo(Producto::class);
+        return $this->belongsTo(Producto::class)->withTrashed();
     }
 
     public function pedido()

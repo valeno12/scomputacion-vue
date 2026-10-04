@@ -22,6 +22,8 @@
       </div>
     </div>
 
+    <slot name="toolbar" />
+
     <!-- Tabla -->
     <div class="rounded-md border">
       <Table>
@@ -40,7 +42,7 @@
               }"
             >
               <div class="flex items-center gap-2">
-                {{ column.label }}
+                <slot :name="`header-${column.key}`">{{ column.label }}</slot>
                 <template v-if="column.sortable">
                   <ArrowUpDown
                     v-if="sortBy !== column.key"

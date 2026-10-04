@@ -1,73 +1,36 @@
 <template>
   <div
-    class="overflow-hidden rounded-xl border bg-gradient-to-br from-purple-50 to-pink-50 shadow-sm dark:from-purple-950/20 dark:to-pink-950/20"
+    v-if="siguienteEstado"
+    class="flex flex-col items-start gap-1.5 sm:items-end"
   >
-    <div class="border-b bg-white/50 px-6 py-4 dark:bg-gray-950/50">
-      <div class="flex items-center gap-3">
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/50"
-        >
-          <Zap class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-        </div>
-        <div>
-          <h3 class="font-semibold">Acciones Rápidas</h3>
-          <p class="text-xs text-muted-foreground">Cambiar estado del pedido</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="space-y-3 p-6">
-      <!-- Badge con estado actual -->
-      <div
-        class="flex items-center justify-between rounded-lg bg-white/60 p-3 dark:bg-gray-900/60"
-      >
-        <span class="text-sm font-medium">Estado Actual</span>
-        <Badge variant="default">
-          {{ pedido.estado_actual?.nombre || 'Sin estado' }}
-        </Badge>
-      </div>
-
-      <!-- Botones de acción -->
-      <div>
-        <!-- Caso especial: Estado 1 → Ir a Edit con step=2 -->
-        <Button
-          v-if="pedido.estadoActual_id === 1 && siguienteEstado"
-          @click="handleCambiarAEstado2"
-          class="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-          :disabled="loading"
-        >
-          <ArrowRight class="mr-2 h-4 w-4" />
-          Cambiar a {{ siguienteEstado.nombre }}
-        </Button>
-
-        <!-- Casos normales: Avanzar al siguiente estado -->
-        <Button
-          v-else-if="siguienteEstado"
-          @click="confirmCambioEstado"
-          class="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-          :disabled="loading"
-        >
-          <ArrowRight class="mr-2 h-4 w-4" />
-          Cambiar a {{ siguienteEstado.nombre }}
-        </Button>
-
-        <!-- Estado final (5 = Entregado) -->
-        <div
-          v-else
-          class="rounded-lg border border-dashed border-green-300 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-950/20"
-        >
-          <CheckCircle
-            class="mx-auto mb-2 h-8 w-8 text-green-600 dark:text-green-400"
-          />
-          <p class="text-sm font-medium text-green-900 dark:text-green-100">
-            Pedido Completado
-          </p>
-          <p class="text-xs text-green-700 dark:text-green-300">
-            Este pedido está en su estado final
-          </p>
-        </div>
-      </div>
-    </div>
+    <Button
+      type="button"
+      size="lg"
+      class="w-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 sm:w-auto"
+      :disabled="loading"
+      @click="
+        pedido.estadoActual_id === 1
+          ? handleCambiarAEstado2()
+          : confirmCambioEstado()
+      "
+      ><ArrowRight class="size-4" />{{
+        etiquetaExplicita
+          ? etiquetas[siguienteEstado.id] || 'Cambiar estado'
+          : 'Cambiar estado'
+      }}</Button
+    >
+    <span v-if="!etiquetaExplicita" class="text-xs text-muted-foreground"
+      >Siguiente:
+      <span class="font-medium text-foreground">{{
+        siguienteEstado.nombre
+      }}</span></span
+    >
+  </div>
+  <div
+    v-else
+    class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+  >
+    <CheckCircle class="size-4" /> Pedido entregado
   </div>
 
   <!-- Diálogo de confirmación -->
@@ -85,7 +48,7 @@
             v-if="siguienteEstado?.id === 3"
             class="mt-2 block text-destructive"
           >
-            ⚠️ Al aprobar el pedido se descontará el stock de los productos.
+            Al aprobar el pedido se descontará el stock de los productos.
           </span>
           <span v-if="siguienteEstado?.id === 5" class="mt-2 block">
             Se registrará la fecha de pago automáticamente.
@@ -100,9 +63,26 @@
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
+  <CobroDialog
+    v-if="pedido.comercio_version === 2"
+    v-model:open="cobrar"
+    :endpoint="`/Pedido/${pedido.id}/actualizarEstado/5`"
+    titulo="Entregar y cobrar pedido"
+    descripcion="Incluye la reparación y las ventas que siguen pendientes. Los importes ya cobrados no se vuelven a sumar."
+    confirmar="Confirmar entrega y cobro"
+    :total="totalPendiente"
+    :conceptos="conceptosCobro"
+    :minimo="
+      pendientes
+        .map((op) => op.fecha)
+        .sort()
+        .at(-1)
+    "
+  />
 </template>
 
 <script setup lang="ts">
+import CobroDialog from '@/components/comercio/CobroDialog.vue';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,14 +93,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import pedidoRoutes from '@/routes/pedido';
 import type { Estado } from '@/types/estado.interface';
 import type { Pedido } from '@/types/pedido.interface';
 import { router } from '@inertiajs/vue3';
-import { ArrowRight, CheckCircle, Zap } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { ArrowRight, CheckCircle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
 interface Props {
@@ -128,10 +107,35 @@ interface Props {
     estado_actual: Estado;
   };
   siguienteEstado: Estado | null;
+  etiquetaExplicita?: boolean;
 }
 
 const props = defineProps<Props>();
+const etiquetas: Record<number, string> = {
+  2: 'Cargar presupuesto',
+  3: 'Aprobar presupuesto',
+  4: 'Marcar finalizado',
+  5: 'Entregar y cobrar',
+};
 
+const cobrar = ref(false);
+const pendientes = computed(() =>
+  (props.pedido.operaciones || []).filter(
+    (op) => op.estado !== 'anulada' && !op.fecha_cobro,
+  ),
+);
+const totalPendiente = computed(() =>
+  pendientes.value.reduce((sum, op) => sum + op.total_centavos, 0),
+);
+const conceptosCobro = computed(() =>
+  pendientes.value.map((op) => ({
+    nombre:
+      op.tipo === 'venta'
+        ? 'Venta V' + op.id
+        : 'Reparación (mano de obra y repuestos)',
+    total: op.total_centavos,
+  })),
+);
 const showConfirmDialog = ref(false);
 const loading = ref(false);
 
@@ -140,7 +144,9 @@ const handleCambiarAEstado2 = () => {
 };
 
 const confirmCambioEstado = () => {
-  showConfirmDialog.value = true;
+  if (props.pedido.comercio_version === 2 && props.siguienteEstado?.id === 5)
+    cobrar.value = true;
+  else showConfirmDialog.value = true;
 };
 
 const executeCambioEstado = () => {
@@ -154,7 +160,7 @@ const executeCambioEstado = () => {
       estado_id: props.siguienteEstado.id,
     }).url,
     {
-      method: 'get',
+      method: 'post',
       preserveScroll: true,
       onSuccess: () => {
         toast.success('¡Estado actualizado!', {

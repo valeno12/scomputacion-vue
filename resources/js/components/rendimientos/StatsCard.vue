@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group relative overflow-hidden rounded-xl border bg-gradient-to-br p-6 shadow-sm transition-all duration-300 hover:shadow-lg"
+    class="group relative overflow-hidden rounded-xl border bg-gradient-to-br p-5 shadow-sm transition-all duration-300 hover:shadow-lg"
     :class="gradientClass"
   >
     <!-- Decorative element -->
@@ -13,7 +13,7 @@
       <!-- Icon y valor -->
       <div class="flex items-start justify-between">
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
+          class="flex h-10 w-10 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110"
           :class="iconBgClass"
         >
           <component :is="icon" class="h-6 w-6" :class="iconColorClass" />
@@ -36,8 +36,14 @@
       </p>
 
       <!-- Value -->
-      <p class="text-3xl font-bold tracking-tight" :class="valueColorClass">
+      <p
+        class="text-2xl font-bold tracking-tight tabular-nums"
+        :class="valueColorClass"
+      >
         {{ formattedValue }}
+      </p>
+      <p v-if="description" class="text-xs text-muted-foreground">
+        {{ description }}
       </p>
     </div>
   </div>
@@ -51,6 +57,7 @@ import { computed, type Component } from 'vue';
 
 interface Props {
   label: string;
+  description?: string;
   value: number;
   variant?: 'success' | 'danger' | 'warning' | 'info' | 'primary';
   icon: Component;

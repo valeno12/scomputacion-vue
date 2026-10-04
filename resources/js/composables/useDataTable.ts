@@ -9,11 +9,17 @@ export interface DataTableFilters {
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
   estado?: string;
+  cobro?: string;
+  origen?: string;
+  tipo?: string;
+  desde?: string;
+  hasta?: string;
 }
 
 export function useDataTable(
   routeUrl: string,
   initialFilters: DataTableFilters = {},
+  options: { preserveState?: boolean } = {},
 ) {
   const search = ref(initialFilters.search || '');
   const page = ref(Number(initialFilters.page) || 1);
@@ -39,9 +45,15 @@ export function useDataTable(
       sort_by: sortBy.value,
       sort_order: sortOrder.value,
       estado: initialFilters.estado,
+      cobro: initialFilters.cobro,
+      origen: initialFilters.origen,
+      tipo: initialFilters.tipo,
+      desde: initialFilters.desde,
+      hasta: initialFilters.hasta,
     };
 
     const visitOptions = {
+      preserveState: options.preserveState ?? false,
       method: 'get' as const,
       data: params,
       only: ['data', 'filters'],
@@ -60,6 +72,11 @@ export function useDataTable(
                 sort_by: sortBy.value,
                 sort_order: sortOrder.value,
                 estado: initialFilters.estado,
+                cobro: initialFilters.cobro,
+                origen: initialFilters.origen,
+                tipo: initialFilters.tipo,
+                desde: initialFilters.desde,
+                hasta: initialFilters.hasta,
               },
               only: ['data', 'filters'],
             },
@@ -75,6 +92,11 @@ export function useDataTable(
           sort_by: sortBy.value,
           sort_order: sortOrder.value,
           estado: initialFilters.estado,
+          cobro: initialFilters.cobro,
+          origen: initialFilters.origen,
+          tipo: initialFilters.tipo,
+          desde: initialFilters.desde,
+          hasta: initialFilters.hasta,
         };
 
         const prefetchOptions = {
@@ -114,6 +136,11 @@ export function useDataTable(
       sort_by: sortBy.value,
       sort_order: sortOrder.value,
       estado: initialFilters.estado,
+      cobro: initialFilters.cobro,
+      origen: initialFilters.origen,
+      tipo: initialFilters.tipo,
+      desde: initialFilters.desde,
+      hasta: initialFilters.hasta,
     };
 
     router.prefetch(

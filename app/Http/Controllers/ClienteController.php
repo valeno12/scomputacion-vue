@@ -16,21 +16,21 @@ class ClienteController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('dni', 'like', "%{$search}%")
-                  ->orWhere('nombre', 'ilike', "%{$search}%")
-                  ->orWhere('apellido', 'ilike', "%{$search}%")
-                  ->orWhere('mail', 'ilike', "%{$search}%");
+                    ->orWhere('nombre', 'ilike', "%{$search}%")
+                    ->orWhere('apellido', 'ilike', "%{$search}%")
+                    ->orWhere('mail', 'ilike', "%{$search}%");
             });
         }
 
         // Ordenamiento
         $sortBy = $request->input('sort_by', 'apellido');
         $sortOrder = $request->input('sort_order', 'asc');
-        
+
         // Validar columnas permitidas para ordenar
         $allowedSorts = ['dni', 'nombre', 'apellido', 'mail'];
         if (in_array($sortBy, $allowedSorts)) {
             $query->orderBy($sortBy, $sortOrder);
-            
+
             // Si ordena por apellido, secundariamente por nombre
             if ($sortBy === 'apellido') {
                 $query->orderBy('nombre', $sortOrder);
@@ -52,7 +52,6 @@ class ClienteController extends Controller
         ]);
     }
 
-
     public function create()
     {
         return Inertia::render('Clientes/Create');
@@ -60,59 +59,67 @@ class ClienteController extends Controller
 
     public function search(Request $request)
     {
-        $query = $request->get('q', '');
-        
+        $request->validate(['q' => 'nullable|string|max:200']);
+        $query = trim((string) $request->input('q', ''));
+        if ($query === '') {
+            return response()->json([]);
+        }
+
         // Separar por espacios
         $palabras = array_filter(explode(' ', $query));
-        
+
         $clientes = Cliente::query();
-        
+
         // Para cada palabra, buscar que esté en algún campo
         foreach ($palabras as $palabra) {
-            $clientes->where(function($q) use ($palabra) {
-                $q->where('nombre', 'ilike', "%{$palabra}%")
-                ->orWhere('apellido', 'ilike', "%{$palabra}%")
-                ->orWhere('dni', 'ilike', "%{$palabra}%");
+            $clientes->where(function ($q) use ($palabra) {
+                $q->whereRaw('LOWER(nombre) LIKE ?', ['%'.mb_strtolower($palabra).'%'])
+                    ->orWhereRaw('LOWER(apellido) LIKE ?', ['%'.mb_strtolower($palabra).'%'])
+                    ->orWhereRaw('LOWER(dni) LIKE ?', ['%'.mb_strtolower($palabra).'%']);
             });
         }
-        
+
         $clientes = $clientes
             ->orderBy('apellido')
             ->orderBy('nombre')
             ->limit(50)
             ->get();
-        
+
         return response()->json($clientes);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:cliente,dni',
+            'dni' => 'nullable|string|max:20|unique:cliente,dni',
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
-            'direccion' => 'required|string|max:500',
-            'telefono' => 'required|string|max:50',
-            'mail' => 'required|email|max:255',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:50',
+            'mail' => 'nullable|email|max:255',
         ]);
 
         $cliente = Cliente::create($validated);
 
+        if ($request->expectsJson()) {
+            return response()->json(['cliente' => $cliente], 201);
+        }
+
         if ($request->boolean('from_modal')) {
             return back()->with('cliente_creado_id', $cliente->id);
         }
-            
+
         return redirect()->route('cliente.index');
     }
 
     public function show($id)
     {
-        $cliente = Cliente::with(['pedidos' => function($query) {
+        $cliente = Cliente::with(['pedidos' => function ($query) {
             $query->with('estadoActual')
                 ->orderBy('created_at', 'desc')
                 ->limit(10);
         }])->findOrFail($id);
-        
+
         return Inertia::render('Clientes/Show', [
             'cliente' => $cliente,
         ]);
@@ -121,7 +128,7 @@ class ClienteController extends Controller
     public function edit($id)
     {
         $cliente = Cliente::findOrFail($id);
-        
+
         return Inertia::render('Clientes/Edit', [
             'cliente' => $cliente,
         ]);
@@ -130,20 +137,20 @@ class ClienteController extends Controller
     public function update(Request $request, $id)
     {
         $cliente = Cliente::findOrFail($id);
-        
+
         $validated = $request->validate([
-            'dni' => 'required|string|max:20|unique:cliente,dni,' . $cliente->id,
+            'dni' => 'nullable|string|max:20|unique:cliente,dni,'.$cliente->id,
             'nombre' => 'required|string|max:255',
             'apellido' => 'required|string|max:255',
-            'direccion' => 'required|string|max:500',
-            'telefono' => 'required|string|max:50',
-            'mail' => 'required|email|max:255',
+            'direccion' => 'nullable|string|max:255',
+            'telefono' => 'nullable|string|max:50',
+            'mail' => 'nullable|email|max:255',
         ]);
 
         $cliente->update($validated);
 
         return redirect()->route('cliente.index');
-            // ->with('success', 'Cliente actualizado exitosamente');
+        // ->with('success', 'Cliente actualizado exitosamente');
     }
 
     public function destroy($id)

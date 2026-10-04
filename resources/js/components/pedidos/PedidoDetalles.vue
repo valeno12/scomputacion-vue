@@ -128,7 +128,7 @@
               </div>
               <div class="flex justify-between">
                 <span class="font-medium text-muted-foreground"
-                  >Costo Productos:</span
+                  >Costo repuestos:</span
                 >
                 <span class="font-semibold">
                   {{ formatMoney(pedido.costo || 0) }}
@@ -181,7 +181,7 @@ interface Props {
     cliente: {
       nombre: string;
       apellido: string;
-      dni: string;
+      dni: string | null;
     };
   };
 }

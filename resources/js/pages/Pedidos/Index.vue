@@ -36,6 +36,14 @@
             </template>
 
             <!-- Columna cliente -->
+            <template #cell-codigo="{ item }: { item: Pedido }">
+              <Link
+                :href="pedidoRoutes.show({ id: item.id }).url"
+                class="font-semibold text-blue-700 underline-offset-4 hover:underline dark:text-blue-300"
+                @click="recordarListadoPedidos(item.id)"
+                >{{ item.codigo }}</Link
+              >
+            </template>
             <template #cell-cliente="{ item }: { item: Pedido }">
               <div v-if="item.cliente">
                 {{ item.cliente.nombre }} {{ item.cliente.apellido }}
@@ -167,13 +175,14 @@ import {
   useDataTable,
   type DataTableFilters,
 } from '@/composables/useDataTable';
+import { recordarListadoPedidos } from '@/composables/usePedidoNavigation';
 import AppLayout from '@/layouts/AppLayout.vue';
 import pedidoRoutes from '@/routes/pedido';
 import type { BreadcrumbItem } from '@/types';
 import type { LaravelPagination } from '@/types/pagination';
 import type { Pedido } from '@/types/pedido.interface';
 import { formatDate } from '@/utils/formatter';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
@@ -296,10 +305,10 @@ const getEstadoConfig = (estadoId: number) => {
   return configs[estadoId as keyof typeof configs] || configs[3];
 };
 // Cambio de tab
-const handleTabChange = (newTab: string) => {
+const handleTabChange = (newTab: string | number) => {
   router.get(
     pedidoRoutes.index().url,
-    { estado: newTab },
+    { ...props.filters, search: search.value, estado: String(newTab), page: 1 },
     {
       preserveState: false,
       preserveScroll: true,
@@ -310,14 +319,17 @@ const handleTabChange = (newTab: string) => {
 
 // Funciones de navegación
 const handleCreate = (): void => {
+  recordarListadoPedidos();
   router.visit(pedidoRoutes.create().url);
 };
 
 const handleShow = (id: number): void => {
+  recordarListadoPedidos(id);
   router.visit(pedidoRoutes.show({ id }).url);
 };
 
 const handleEdit = (id: number): void => {
+  recordarListadoPedidos(id);
   router.visit(pedidoRoutes.edit({ id }).url + '?from=index');
 };
 

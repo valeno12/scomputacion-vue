@@ -10,9 +10,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import cliente from '@/routes/cliente';
-import movimientosStock from '@/routes/movimientos-stock';
 import pedido from '@/routes/pedido';
-import producto from '@/routes/producto';
 import proveedor from '@/routes/proveedor';
 import rendimientos from '@/routes/rendimientos';
 import { type NavItem } from '@/types';
@@ -41,9 +39,10 @@ const mainNavItems: NavItem[] = [
   },
   {
     title: 'Productos',
-    href: producto.index(),
+    href: '/productos',
     icon: Cpu,
   },
+  { title: 'Ventas', href: '/comercio/ventas', icon: DollarSign },
   {
     title: 'Clientes',
     href: cliente.index(),
@@ -56,7 +55,7 @@ const mainNavItems: NavItem[] = [
   },
   {
     title: 'Movimientos de Stock',
-    href: movimientosStock.index(),
+    href: '/movimientos-stock',
     icon: Package,
   },
   {

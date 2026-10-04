@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-8 text-white shadow-xl"
+    class="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-5 text-white shadow-md md:p-7"
   >
     <!-- Pattern decorativo -->
     <div class="absolute inset-0 opacity-10">
@@ -10,12 +10,18 @@
     </div>
 
     <div class="relative">
-      <div class="grid gap-8 lg:grid-cols-2">
+      <div class="grid items-center gap-6 lg:grid-cols-[1.15fr_1fr]">
         <!-- Left: Título y Ganancia destacada -->
-        <div class="space-y-6">
+        <div class="space-y-4">
           <div>
-            <h1 class="text-4xl font-bold tracking-tight">Rendimientos</h1>
-            <p class="mt-2 text-lg text-white/80">
+            <p
+              v-if="titular"
+              class="mb-2 text-xs font-medium tracking-wide text-white/80"
+            >
+              Finanzas de {{ titular }}
+            </p>
+            <h1 class="text-3xl font-bold tracking-tight">Rendimientos</h1>
+            <p class="mt-1 text-sm text-white/80">
               {{ getMonthName(selectedMonth) }} {{ selectedYear }}
             </p>
           </div>
@@ -24,26 +30,34 @@
             <p
               class="text-sm font-medium tracking-wider text-white/70 uppercase"
             >
-              Ganancia Neta del Mes
+              Resultado del mes
             </p>
-            <p class="text-5xl font-bold tracking-tight">
+            <p class="text-4xl font-bold tracking-tight md:text-5xl">
               {{ gananciaMensual }}
             </p>
-            <p class="text-sm text-white/70">Cobros menos gastos del período</p>
+            <p class="text-sm text-white/70">
+              Pedidos: ganancia cobrada. Productos: tu parte cobrada menos tus
+              compras.
+            </p>
           </div>
         </div>
 
         <!-- Right: Filtros -->
         <div class="flex items-end">
           <div
-            class="w-full space-y-4 rounded-xl border border-white/30 bg-white/20 p-6 shadow-lg backdrop-blur-md"
+            class="w-full space-y-3 rounded-xl border border-white/30 bg-white/10 p-4 shadow-lg backdrop-blur-md md:p-5"
           >
             <div class="grid gap-4 sm:grid-cols-2">
               <!-- Año -->
               <div class="space-y-2">
-                <label class="text-sm font-semibold text-white">Año</label>
+                <label
+                  for="rendimientos-year"
+                  class="text-sm font-semibold text-white"
+                  >Año</label
+                >
                 <Select v-model="localYear">
                   <SelectTrigger
+                    id="rendimientos-year"
                     class="border-white/40 bg-white/90 font-medium text-gray-900 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
                   >
                     <SelectValue />
@@ -62,9 +76,14 @@
 
               <!-- Mes -->
               <div class="space-y-2">
-                <label class="text-sm font-semibold text-white">Mes</label>
+                <label
+                  for="rendimientos-month"
+                  class="text-sm font-semibold text-white"
+                  >Mes</label
+                >
                 <Select v-model="localMonth">
                   <SelectTrigger
+                    id="rendimientos-month"
                     class="border-white/40 bg-white/90 font-medium text-gray-900 shadow-md backdrop-blur-sm transition-colors hover:bg-white"
                   >
                     <SelectValue />
@@ -84,11 +103,11 @@
 
             <Button
               @click="handleApply"
-              class="w-full bg-white font-semibold text-purple-600 shadow-lg transition-all hover:bg-white/95 hover:shadow-xl"
+              class="w-full bg-white font-semibold text-purple-600 shadow-lg transition-all hover:bg-white/95 hover:shadow-md"
               size="lg"
             >
               <Search class="mr-2 h-4 w-4" />
-              Actualizar Rendimientos
+              Ver rendimientos
             </Button>
           </div>
         </div>
@@ -117,6 +136,7 @@ interface Props {
   selectedYear: number;
   selectedMonth: number;
   gananciaMes: number;
+  titular?: string;
 }
 
 const props = defineProps<Props>();

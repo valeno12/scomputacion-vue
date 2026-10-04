@@ -1,6 +1,9 @@
 <template>
   <div class="flex h-full flex-1 flex-col gap-6 p-6">
-    <div class="mx-auto w-full max-w-4xl space-y-6">
+    <div
+      class="mx-auto w-full min-w-0 space-y-6"
+      :class="wide ? 'max-w-none' : 'max-w-4xl'"
+    >
       <!-- Header -->
       <div>
         <h2 class="text-3xl font-bold tracking-tight">{{ title }}</h2>
@@ -17,6 +20,7 @@
 interface Props {
   title: string;
   description: string;
+  wide?: boolean;
 }
 
 defineProps<Props>();

@@ -2,89 +2,53 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Pedido;
 use App\Models\MovimientoStock;
-use Illuminate\Support\Facades\DB;
+use App\Models\Pedido;
+use App\Models\Proveedor;
+use App\Services\Comercio\ResumenComercial;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class RendimientosController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ResumenComercial $resumen)
     {
-        // Obtener el mes y el año seleccionados del request o usar el mes y año actuales como valores predeterminados
-        $selectedMonth = $request->input('selectedMonth', date('n'));
-        $selectedYear = $request->input('selectedYear', date('Y'));
-    
-        // Calcular ganancias por mes
-        $gananciasPorMes = Pedido::whereYear('fecha_pago', $selectedYear)
-            ->whereMonth('fecha_pago', $selectedMonth)
-            ->whereNotNull('fecha_pago')
-            ->select(DB::raw('SUM(presupuesto) as total_ganancias'))
-            ->groupBy(DB::raw('EXTRACT(MONTH FROM fecha_pago)'))
-            ->get();
-    
-        // Calcular gastos por mes
-        $gastosPorMes = MovimientoStock::where('tipo_movimiento', 'entrada')
-            ->whereYear('fecha', $selectedYear)
-            ->whereMonth('fecha', $selectedMonth)
-            ->select(DB::raw('SUM(cantidad * precio) as total_gastos'))
-            ->groupBy(DB::raw('EXTRACT(MONTH FROM fecha)'))
-            ->get();
-    
-        // Obtener detalles de cobros por mes
-        $cobrosPorMesDetalles = Pedido::whereYear('fecha_pago', $selectedYear)
-            ->whereMonth('fecha_pago', $selectedMonth)
-            ->whereNotNull('fecha_pago')
-            ->get();
-    
-        // Obtener detalles de gastos por mes
-        $gastosPorMesDetalles = MovimientoStock::where('tipo_movimiento', 'entrada')
-            ->whereYear('fecha', $selectedYear)
-            ->whereMonth('fecha', $selectedMonth)
-            ->with('producto') // Eager load para la vista
-            ->get();
-        
-        $proveedores = MovimientoStock::where('tipo_movimiento', 'entrada')
-            ->with('proveedor')
-            ->select('proveedor_id', DB::raw('count(*) as cantidad_pedidos'))
-            ->groupBy('proveedor_id')
-            ->get();
-            
-        // Organizar los detalles de cobros y gastos por mes para pasar a la vista
-        $detalleCobrosGastos = [];
-        foreach ($cobrosPorMesDetalles as $cobro) {
-            $detalleCobrosGastos[$cobro->fecha_pago]['cobros'][] = $cobro;
-        }
-        foreach ($gastosPorMesDetalles as $gasto) {
-            $detalleCobrosGastos[$gasto->fecha]['gastos'][] = $gasto;
-        }
-        
-        // Calcular ganancia del mes como la diferencia entre gastos y cobros
-        $gananciaMes = $gananciasPorMes->sum('total_ganancias') - $gastosPorMes->sum('total_gastos');
-        
-        $pedidosEntregadosMes = DB::table('pedido_estado')
-            ->where('estado_id', 5)
-            ->whereYear('created_at', $selectedYear)
-            ->whereMonth('created_at', $selectedMonth)
-            ->distinct('pedido_id')
-            ->count('pedido_id');
+        $request->validate(['selectedMonth' => 'sometimes|integer|between:1,12', 'selectedYear' => 'sometimes|integer|between:2000,2200']);
+        $localNow = now()->setTimezone(config('comercio.zona_horaria'));
+        $month = (int) $request->input('selectedMonth', $localNow->month);
+        $year = (int) $request->input('selectedYear', $localNow->year);
+        // New repairs are counted through their operation, never through both sources.
+        $legacyIncome = Pedido::with('estadoEntregado')->where('comercio_version', 1)->whereYear('fecha_pago', $year)->whereMonth('fecha_pago', $month)->get();
+        $legacyIncome->each(fn ($pedido) => $pedido->setAttribute('orden', ($pedido->estadoEntregado?->created_at ?? $pedido->updated_at ?? $pedido->created_at)?->toISOString()));
+        $legacyExpenses = MovimientoStock::with('producto')->where('tipo_movimiento', 'entrada')->whereYear('fecha', $year)->whereMonth('fecha', $month)->get();
+        $commerce = $resumen->mes($year, $month);
+        $income = (float) $legacyIncome->sum('presupuesto') + $commerce['cobros_centavos'] / 100;
+        $expenses = (float) $legacyExpenses->sum(fn ($m) => $m->cantidad * $m->precio) + $commerce['gastos_centavos'] / 100;
+        $delivered = Pedido::whereHas('estadoEntregado', fn ($q) => $q->whereYear('created_at', $year)->whereMonth('created_at', $month))->count();
+        $count = $legacyIncome->count() + $commerce['operaciones']->count();
+        $profit = (float) $legacyIncome->sum('ganancia') + $commerce['ganancia_centavos'] / 100;
 
-        $promedioGananciaPorPedido = $pedidosEntregadosMes > 0 
-            ? $gananciaMes / $pedidosEntregadosMes 
-            : 0;
+        $providerRows = $legacyExpenses->map(fn ($row) => ['proveedor_id' => $row->proveedor_id])
+            ->concat($commerce['compras']->map(fn ($row) => ['proveedor_id' => $row['proveedor_id']]));
+        $providers = Proveedor::withTrashed()->whereIn('id', $providerRows->pluck('proveedor_id')->filter())->get()->keyBy('id');
+        $providerSummary = $providerRows->groupBy(fn ($row) => $row['proveedor_id'] ?? 'none')->map(fn ($rows) => [
+            'proveedor_id' => $rows->first()['proveedor_id'], 'cantidad_pedidos' => $rows->count(),
+            'proveedor' => ['nombre' => $providers->get($rows->first()['proveedor_id'])?->nombre ?? 'Sin proveedor'],
+        ])->values();
 
         return Inertia::render('Rendimientos/Index', [
-            'gananciasPorMes' => $gananciasPorMes,
-            'gastosPorMes' => $gastosPorMes,
-            'selectedMonth' => (int) $selectedMonth,
-            'selectedYear' => (int) $selectedYear,
-            'cobrosPorMesDetalles' => $cobrosPorMesDetalles,
-            'gastosPorMesDetalles' => $gastosPorMesDetalles,
-            'gananciaMes' => $gananciaMes,
-            'proveedores' => $proveedores,
-            'pedidosEntregadosMes' => $pedidosEntregadosMes,
-            'promedioGananciaPorPedido' => $promedioGananciaPorPedido,
+            'gananciasPorMes' => [['total_ganancias' => $income]],
+            'gastosPorMes' => [['total_gastos' => $expenses]],
+            'selectedMonth' => $month, 'selectedYear' => $year,
+            'cobrosPorMesDetalles' => $legacyIncome,
+            'gastosPorMesDetalles' => $legacyExpenses,
+            'gananciaMes' => $income - $expenses,
+            'proveedores' => $providerSummary,
+            'pedidosEntregadosMes' => $delivered,
+            'promedioGananciaPorPedido' => $count ? $profit / $count : 0,
+            'comercio' => $commerce,
+            'gananciaTitular' => $profit,
+            'legacyResumen' => ['cobros_centavos' => (int) round($legacyIncome->sum('presupuesto') * 100), 'ganancia_centavos' => (int) round($legacyIncome->sum('ganancia') * 100), 'gastos_centavos' => (int) round($legacyExpenses->sum(fn ($m) => $m->cantidad * $m->precio) * 100)],
         ]);
     }
 }

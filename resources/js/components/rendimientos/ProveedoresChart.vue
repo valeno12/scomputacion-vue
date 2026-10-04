@@ -1,6 +1,5 @@
 <template>
   <div
-    v-if="hasData"
     class="overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-gray-950"
   >
     <!-- Header -->
@@ -15,17 +14,17 @@
         </div>
         <div>
           <h3 class="font-semibold text-gray-900 dark:text-gray-100">
-            Distribución por Proveedor
+            Compras por proveedor
           </h3>
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Compras realizadas en el período
+            Compras de stock de todos los participantes en el mes seleccionado
           </p>
         </div>
       </div>
     </div>
 
     <!-- Chart -->
-    <div class="p-8">
+    <div v-if="hasData" class="p-5 md:p-6">
       <div class="mx-auto grid gap-8 lg:grid-cols-2">
         <!-- Gráfico -->
         <div class="flex items-center justify-center">
@@ -58,7 +57,8 @@
             </div>
             <div class="flex items-center gap-3">
               <span class="text-sm text-muted-foreground">
-                {{ item.cantidad_pedidos }} pedidos
+                {{ item.cantidad_pedidos }}
+                {{ item.cantidad_pedidos === 1 ? 'compra' : 'compras' }}
               </span>
               <span class="text-sm font-semibold">
                 {{ getPercentage(item.cantidad_pedidos) }}%
@@ -67,6 +67,16 @@
           </div>
         </div>
       </div>
+    </div>
+    <div
+      v-else
+      class="flex items-center gap-3 p-6 text-sm text-muted-foreground"
+    >
+      <PieChartIcon class="size-8 shrink-0 opacity-30" />
+      <p>
+        No hay compras registradas en este mes. Acá vas a ver cómo se
+        distribuyen por proveedor.
+      </p>
     </div>
   </div>
 </template>
@@ -204,7 +214,7 @@ const chartOptions = computed<ChartOptions<'doughnut'>>(() => ({
         label: (context) => {
           const value = context.parsed || 0;
           const percentage = ((value / totalPedidos.value) * 100).toFixed(1);
-          return ` ${value} pedidos (${percentage}%)`;
+          return ` ${value} compras (${percentage}%)`;
         },
       },
     },

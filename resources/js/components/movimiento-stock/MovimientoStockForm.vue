@@ -23,6 +23,7 @@ import MovimientoStockFormFields from './MovimientoStockFormFields.vue';
 
 interface Props {
   movimiento: MovimientoStock;
+  updateUrl?: string;
 }
 
 const props = defineProps<Props>();
@@ -35,19 +36,22 @@ const form = useForm({
 provide('movimientoStockForm', form);
 
 const submit = () => {
-  form.put(movimientosStock.update({ id: props.movimiento.id }).url, {
-    preserveScroll: true,
-    onSuccess: () => {
-      toast.success('¡Entrada actualizada!', {
-        description: 'Los cambios se han guardado correctamente.',
-      });
+  form.put(
+    props.updateUrl ?? movimientosStock.update({ id: props.movimiento.id }).url,
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('¡Entrada actualizada!', {
+          description: 'Los cambios se han guardado correctamente.',
+        });
+      },
+      onError: () => {
+        toast.error('Error en el formulario', {
+          description: 'Por favor, revisa los campos marcados en rojo.',
+        });
+      },
     },
-    onError: () => {
-      toast.error('Error en el formulario', {
-        description: 'Por favor, revisa los campos marcados en rojo.',
-      });
-    },
-  });
+  );
 };
 
 const handleCancel = () => {

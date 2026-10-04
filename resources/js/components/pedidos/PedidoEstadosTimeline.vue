@@ -54,7 +54,7 @@
 
         <!-- Contenido -->
         <div class="flex-1 pb-4">
-          <div class="flex items-start justify-between">
+          <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="flex-1">
               <p
                 :class="[
@@ -73,14 +73,23 @@
 
             <!-- Botón eliminar -->
             <Button
-              v-if="index === estados.length - 1 && estados.length > 1"
+              v-if="
+                editable && index === estados.length - 1 && estados.length > 1
+              "
               variant="ghost"
-              size="icon"
-              class="h-8 w-8 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+              :size="accionesClaras ? 'sm' : 'icon'"
+              class="min-h-8 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
               @click="confirmDelete(estado)"
-              title="Eliminar último estado"
+              :title="
+                accionesClaras
+                  ? 'Volver al estado anterior'
+                  : 'Eliminar último estado'
+              "
             >
-              <Trash2 class="h-4 w-4" />
+              <Undo2 v-if="accionesClaras" class="h-4 w-4" /><Trash2
+                v-else
+                class="h-4 w-4"
+              /><span v-if="accionesClaras">Volver al estado anterior</span>
             </Button>
           </div>
         </div>
@@ -92,12 +101,30 @@
   <AlertDialog v-model:open="showDeleteDialog">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+        <AlertDialogTitle>{{
+          accionesClaras ? 'Volver al estado anterior' : '¿Estás seguro?'
+        }}</AlertDialogTitle>
         <AlertDialogDescription>
-          Se eliminará el estado
-          <strong>{{ estadoToDelete?.estado.nombre }}</strong
-          >. Esta acción no se puede deshacer y el pedido volverá al estado
-          anterior.
+          <template v-if="accionesClaras">
+            El pedido pasará de
+            <strong>{{ estadoToDelete?.estado.nombre }}</strong> a
+            <strong>{{ estados[estados.length - 2]?.estado.nombre }}</strong
+            >.
+            <span v-if="estadoToDelete?.estado.id === 5" class="mt-2 block"
+              >Los cobros registrados se conservan. Cambiar el estado del
+              trabajo no revierte un pago.</span
+            >
+            <span v-else-if="estadoToDelete?.estado.id === 3" class="mt-2 block"
+              >Los productos de las ventas pendientes vuelven al stock. Las
+              ventas ya cobradas se conservan.</span
+            >
+          </template>
+          <template v-else
+            >Se eliminará el estado
+            <strong>{{ estadoToDelete?.estado.nombre }}</strong
+            >. Esta acción no se puede deshacer y el pedido volverá al estado
+            anterior.</template
+          >
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -106,7 +133,7 @@
           @click="executeDelete"
           class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
-          Eliminar
+          {{ accionesClaras ? 'Confirmar cambio' : 'Eliminar' }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
@@ -135,6 +162,7 @@ import {
   Package,
   Search,
   Trash2,
+  Undo2,
   Zap,
 } from 'lucide-vue-next';
 import { ref, type Component } from 'vue';
@@ -156,6 +184,8 @@ interface PedidoEstado {
 interface Props {
   estados: PedidoEstado[];
   pedidoId: number;
+  editable?: boolean;
+  accionesClaras?: boolean;
 }
 
 const props = defineProps<Props>();
