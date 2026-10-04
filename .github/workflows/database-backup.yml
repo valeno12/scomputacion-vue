@@ -80,8 +80,13 @@ jobs:
             cp "$encrypted_path" "backups/monthly/scomputacion-$(date -u +%Y-%m).dump.gpg"
           fi
 
-          find backups/daily -type f -name '*.dump.gpg' -mtime +35 -delete
-          find backups/monthly -type f -name '*.dump.gpg' -mtime +400 -delete
+          # Los mtimes cambian al clonar Git; se conservan por nombre (ISO ordenable).
+          find backups/daily -maxdepth 1 -type f -name '*.dump.gpg' -printf '%f\n' \
+            | sort -r | tail -n +36 \
+            | while IFS= read -r file; do rm -- "backups/daily/$file"; done
+          find backups/monthly -maxdepth 1 -type f -name '*.dump.gpg' -printf '%f\n' \
+            | sort -r | tail -n +14 \
+            | while IFS= read -r file; do rm -- "backups/monthly/$file"; done
 
           cd backups
           git config user.name "scomputacion backup bot"
