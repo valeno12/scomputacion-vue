@@ -1,0 +1,93 @@
+name: Backup de base de datos
+
+on:
+  schedule:
+    # 03:17 UTC (00:17 Argentina). Evita coincidir con horarios redondos.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Exportar y cifrar PostgreSQL
+    runs-on: ubuntu-latest
+    env:
+      BACKUP_REPOSITORY: ${{ vars.BACKUP_REPOSITORY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      DATABASE_URL: ${{ secrets.NEON_DIRECT_DATABASE_URL }}
+    steps:
+      - name: Validar configuración
+        shell: bash
+        run: |
+          test -n "$BACKUP_REPOSITORY"
+          test -n "$BACKUP_PASSPHRASE"
+          test -n "$DATABASE_URL"
+
+      - name: Clonar repositorio privado de backups
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.BACKUP_REPOSITORY }}
+          token: ${{ secrets.BACKUP_REPOSITORY_TOKEN }}
+          path: backups
+
+      - name: Crear dump verificable
+        id: dump
+        shell: bash
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +'%Y-%m-%d-%H%M')"
+          mkdir -p output
+          dump_name="scomputacion-$stamp.dump"
+          dump_path="$GITHUB_WORKSPACE/output/$dump_name"
+          docker run --rm \
+            -e DATABASE_URL \
+            -e DUMP_NAME="$dump_name" \
+            -v "$GITHUB_WORKSPACE/output:/output" \
+            postgres:18-alpine \
+            sh -ec 'pg_dump --format=custom --no-owner --no-privileges --file="/output/$DUMP_NAME" "$DATABASE_URL"'
+          docker run --rm \
+            -e DUMP_NAME="$dump_name" \
+            -v "$GITHUB_WORKSPACE/output:/output" \
+            postgres:18-alpine \
+            sh -ec 'pg_restore --list "/output/$DUMP_NAME"' >/dev/null
+          echo "dump_path=$dump_path" >> "$GITHUB_OUTPUT"
+
+      - name: Cifrar backup
+        id: encrypt
+        shell: bash
+        run: |
+          set -euo pipefail
+          encrypted_path="${{ steps.dump.outputs.dump_path }}.gpg"
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "$BACKUP_PASSPHRASE" \
+            --output "$encrypted_path" \
+            "${{ steps.dump.outputs.dump_path }}"
+          rm "${{ steps.dump.outputs.dump_path }}"
+          echo "encrypted_path=$encrypted_path" >> "$GITHUB_OUTPUT"
+
+      - name: Guardar y aplicar retención
+        shell: bash
+        run: |
+          set -euo pipefail
+          encrypted_path="${{ steps.encrypt.outputs.encrypted_path }}"
+          mkdir -p backups/daily backups/monthly
+          cp "$encrypted_path" "backups/daily/$(basename "$encrypted_path")"
+
+          # El primer día del mes se preserva también una copia mensual por 13 meses.
+          if [ "$(date -u +%d)" = "01" ]; then
+            cp "$encrypted_path" "backups/monthly/scomputacion-$(date -u +%Y-%m).dump.gpg"
+          fi
+
+          find backups/daily -type f -name '*.dump.gpg' -mtime +35 -delete
+          find backups/monthly -type f -name '*.dump.gpg' -mtime +400 -delete
+
+          cd backups
+          git config user.name "scomputacion backup bot"
+          git config user.email "backup-bot@users.noreply.github.com"
+          git add daily monthly
+          if ! git diff --cached --quiet; then
+            git commit -m "backup: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
