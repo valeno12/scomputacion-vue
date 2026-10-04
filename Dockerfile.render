@@ -21,10 +21,14 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-RUN composer dump-autoload --no-dev --optimize \
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache \
+    && APP_ENV=production APP_DEBUG=false \
+    APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+    DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=build DB_USERNAME=build \
+    composer dump-autoload --no-dev --optimize \
     && APP_ENV=production APP_DEBUG=false \
        APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
-       DB_CONNECTION=sqlite DB_DATABASE=':memory:' npm run build \
+       DB_CONNECTION=pgsql DB_HOST=127.0.0.1 DB_DATABASE=build DB_USERNAME=build npm run build \
     && rm -rf node_modules
 
 # Un solo servicio Render: Nginx público y PHP-FPM se comunican por localhost.
