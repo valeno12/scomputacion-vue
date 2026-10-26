@@ -29,7 +29,7 @@ class RendimientosController extends Controller
         $profit = (float) $legacyIncome->sum('ganancia') + $commerce['ganancia_centavos'] / 100;
 
         $providerRows = $legacyExpenses->map(fn ($row) => ['proveedor_id' => $row->proveedor_id])
-            ->concat($commerce['compras']->map(fn ($row) => ['proveedor_id' => $row['proveedor_id']]));
+            ->concat($commerce['compras']->where('comprador_id', $commerce['titular']['id'])->map(fn ($row) => ['proveedor_id' => $row['proveedor_id']]));
         $providers = Proveedor::withTrashed()->whereIn('id', $providerRows->pluck('proveedor_id')->filter())->get()->keyBy('id');
         $providerSummary = $providerRows->groupBy(fn ($row) => $row['proveedor_id'] ?? 'none')->map(fn ($rows) => [
             'proveedor_id' => $rows->first()['proveedor_id'], 'cantidad_pedidos' => $rows->count(),
