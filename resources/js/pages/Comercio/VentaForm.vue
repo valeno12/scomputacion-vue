@@ -121,7 +121,6 @@ const total = computed(() =>
         titulo="Confirmar venta y cobro"
         confirmar="Guardar venta cobrada"
         :total="total"
-        :minimo="form.fecha"
         :payload="{ ...form.data(), cobrar: true }"
       />
     </FormLayout>

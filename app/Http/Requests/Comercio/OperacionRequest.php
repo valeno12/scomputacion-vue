@@ -48,7 +48,7 @@ class OperacionRequest extends FormRequest
             'cliente_id' => ['nullable', 'integer', 'exists:cliente,id'],
             'fecha' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.FechaComercial::hoy()],
             'cobrar' => ['sometimes', 'boolean'],
-            'fecha_cobro' => ['required_if:cobrar,true', 'nullable', 'date_format:Y-m-d', 'after_or_equal:fecha', 'before_or_equal:'.FechaComercial::hoy()],
+            'fecha_cobro' => ['required_if:cobrar,true', 'nullable', 'date_format:Y-m-d', 'before_or_equal:'.FechaComercial::hoy()],
             'medio_pago' => ['required_if:cobrar,true', 'nullable', 'string', 'max:100'],
         ];
     }

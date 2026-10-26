@@ -174,7 +174,6 @@ const fecha = (value: string) => formatDate(value, { includeTime: false });
         v-model:open="cobrar"
         :endpoint="`/comercio/operaciones/${operacion.id}/cobrar`"
         :total="operacion.total_centavos"
-        :minimo="operacion.fecha"
       />
     </FormLayout>
   </AppLayout>

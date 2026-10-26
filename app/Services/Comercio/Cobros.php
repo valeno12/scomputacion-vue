@@ -42,9 +42,6 @@ final class Cobros
         }
         $cobradoEn = now();
         foreach ($operaciones as $operacion) {
-            if ($data['fecha_cobro'] < $operacion->fecha) {
-                $this->operaciones->error('El cobro no puede ser anterior a la operación.', 'fecha_cobro');
-            }
             $this->operaciones->confirmar($operacion);
             $operacion->update(['fecha_cobro' => $data['fecha_cobro'], 'cobrado_en' => $cobradoEn, 'medio_pago' => $data['medio_pago']]);
         }

@@ -339,7 +339,6 @@ const fecha = (value: string) => formatDate(value, { includeTime: false });
       :titulo="`Cobrar venta V${ventaACobrar.id}`"
       descripcion="Este importe se descontará del saldo pendiente del pedido."
       :total="ventaACobrar.total_centavos"
-      :minimo="ventaACobrar.fecha"
     />
   </div>
 </template>

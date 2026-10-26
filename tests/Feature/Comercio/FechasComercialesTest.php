@@ -63,7 +63,17 @@ test('sales and collections reject tomorrow even when it is already tomorrow in 
     $op = Operacion::firstOrFail();
     $this->post("/comercio/operaciones/$op->id/cobrar", ['fecha_cobro' => '2026-10-04', 'medio_pago' => 'Efectivo', 'total_esperado' => 150000])->assertSessionHasErrors('fecha_cobro');
     expect($op->fresh()->fecha_cobro)->toBeNull();
-    $this->post("/comercio/operaciones/$op->id/cobrar", ['fecha_cobro' => '2026-10-03', 'medio_pago' => 'Efectivo', 'total_esperado' => 150000])->assertSessionHasNoErrors();
+    $this->post("/comercio/operaciones/$op->id/cobrar", ['fecha_cobro' => '2026-10-02', 'medio_pago' => 'Efectivo', 'total_esperado' => 150000])->assertSessionHasNoErrors();
+    expect($op->fresh()->fecha_cobro)->toBe('2026-10-02');
+});
+
+test('a sale can record a past collection date before its operation date', function () {
+    $sale = ['clave' => (string) Str::uuid(), 'fecha' => '2026-10-03', 'cobrar' => true,
+        'fecha_cobro' => '2026-10-02', 'medio_pago' => 'Efectivo', 'items' => [$this->item]];
+
+    $this->post('/comercio/ventas', $sale)->assertSessionHasNoErrors();
+
+    expect(Operacion::firstOrFail()->fecha_cobro)->toBe('2026-10-02');
 });
 
 test('date correction only repairs automatic unpaid dates without modifying snapshots or recorded collections', function () {

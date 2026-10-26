@@ -72,12 +72,6 @@
     confirmar="Confirmar entrega y cobro"
     :total="totalPendiente"
     :conceptos="conceptosCobro"
-    :minimo="
-      pendientes
-        .map((op) => op.fecha)
-        .sort()
-        .at(-1)
-    "
   />
 </template>
 
